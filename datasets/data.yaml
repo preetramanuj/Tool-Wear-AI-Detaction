@@ -1,0 +1,23 @@
+# YOLO Dataset Configuration - Cutting Tool Detection on MATWI Dataset
+
+# Dataset Root Path (Relative or Absolute)
+path: datasets/processed/tool_detection
+
+# Split Paths (Relative to 'path')
+train: images/train
+val: images/val
+test: images/test
+
+# Class Names
+names:
+  0: cutting_tool
+
+# Dataset Metadata
+metadata:
+  name: MATWI Cutting Tool Detection Dataset
+  version: 1.0.0
+  source: NASA / Machining Research Milling Tool Wear Benchmark
+  total_sets: 17
+  total_images: 1680
+  resolution: 640x640
+  format: YOLO

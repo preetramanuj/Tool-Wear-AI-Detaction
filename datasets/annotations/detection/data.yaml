@@ -1,0 +1,8 @@
+# Detection Annotation Configuration
+path: datasets/processed/tool_detection
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: cutting_tool
