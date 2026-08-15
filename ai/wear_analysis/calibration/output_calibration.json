@@ -1,0 +1,12 @@
+{
+  "linear": {
+    "method": "positive-slope linear calibration",
+    "slope": 1.2554387919699146,
+    "intercept": -0.5844507127098599
+  },
+  "isotonic": {
+    "method": "monotonic isotonic regression",
+    "increasing": true,
+    "out_of_bounds": "clip"
+  }
+}

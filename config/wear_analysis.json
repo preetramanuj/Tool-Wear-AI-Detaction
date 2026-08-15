@@ -1,0 +1,22 @@
+{
+    "model_name": "final_optimized_384px.pth",
+    "architecture": "Late-Fusion (EfficientNet-B0 + Sensor RMS)",
+    "input_resolution": [
+        384,
+        384
+    ],
+    "roi_crop_size": 2000,
+    "normalization": {
+        "mean": [
+            0.485,
+            0.456,
+            0.406
+        ],
+        "std": [
+            0.229,
+            0.224,
+            0.225
+        ]
+    },
+    "target_modality": "Multimodal (Vision + Vibration)"
+}

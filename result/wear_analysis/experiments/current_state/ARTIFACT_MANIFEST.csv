@@ -1,0 +1,6 @@
+Artifact,Path,Role
+final_optimized_384px.pth,models/final_optimized_384px.pth,Production Weights
+toolwear_model.py,toolwear_model.py,Modular Logic
+test_split.csv,metadata/splits/test_split.csv,Evaluation Data
+roi_resolution_results.csv,results/reports/roi_resolution_results.csv,Benchmark Metrics
+calibration_parameters.json,metadata/calibration_parameters.json,Hyperparameters
