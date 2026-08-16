@@ -1,0 +1,27 @@
+{
+    "module": "Tool Health Prediction",
+    "dataset": "MATWI Sets 1-17",
+    "sample_count": 1663,
+    "model_path": "models/image_only_wear/model.pt",
+    "metadata_path": "models/image_only_wear/model_metadata.json",
+    "inference_entrypoint": "src/inference/pipeline.py",
+    "health_predictor": "src/models/tool_health_predictor.py",
+    "requirements": "requirements.txt",
+    "python_version": "3.10+",
+    "pytorch_version": "2.1.0+",
+    "cuda_version": "12.1+",
+    "selected_model": "EfficientNet-B0 (Strategy A)",
+    "test_metrics": {
+        "validation_mae": 39.66689682006836,
+        "test_mae": 45.89405822753906,
+        "test_rmse": 70.7347771001383,
+        "test_r2": -0.04687464237213135
+    },
+    "pytest_status": "PASS",
+    "deployment_status": "READY",
+    "known_limitations": [
+        "Prediction collapse on edge wear values.",
+        "R2 remains slightly negative on completely unseen test tools (Sets 11, 17).",
+        "Thresholds for health classification are unvalidated placeholders."
+    ]
+}

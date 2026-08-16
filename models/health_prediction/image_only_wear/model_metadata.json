@@ -1,0 +1,55 @@
+{
+    "dataset": "MATWI",
+    "sets_used": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        12,
+        13,
+        14,
+        15,
+        9,
+        10,
+        16,
+        11,
+        17
+    ],
+    "train_sets": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        12,
+        13,
+        14,
+        15
+    ],
+    "val_sets": [
+        9,
+        10,
+        16
+    ],
+    "test_sets": [
+        11,
+        17
+    ],
+    "architecture": "EfficientNet-B0 (Strategy A)",
+    "preprocessing": "2000px crop -> 384x384 -> ImageNet norm",
+    "loss": "SmoothL1Loss",
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "target_scaler": "StandardScaler",
+    "validation_mae": 39.66689682006836,
+    "test_mae": 45.89405822753906,
+    "test_rmse": 70.7347771001383,
+    "test_r2": -0.04687464237213135
+}
