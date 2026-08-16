@@ -1,0 +1,66 @@
+{
+    "status": "FINAL_TRAINED_ALL_17_SETS",
+    "architecture": "XGBoost + robust_causal_slope + Log1p_Positive + Physics RUL",
+    "training_sets": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+    ],
+    "eol_threshold_um": 300,
+    "target": "robust_causal_slope",
+    "target_transform": "Log1p_Positive",
+    "hyperparameters": {
+        "n_estimators": 100,
+        "max_depth": 3,
+        "learning_rate": 0.05,
+        "n_jobs": -1,
+        "random_state": 42,
+        "objective": "reg:squarederror"
+    },
+    "training_device": "GPU (cuda)",
+    "training_timestamp": "2026-08-17T01:32:19.313994",
+    "feature_count": 89,
+    "training_row_count": 1537,
+    "target_row_count": 1456,
+    "categories": {
+        "material": [
+            "CK45",
+            "RVS304"
+        ],
+        "crop": [
+            "1150, 670, 1750, 1070",
+            "1790, 2030, 2390, 2430",
+            "1790, 2045, 2390, 2445",
+            "2470, 1000, 3070, 1400"
+        ],
+        "Coating": [
+            "MISSING_CATEGORY",
+            "other"
+        ]
+    },
+    "training_diagnostics": {
+        "mae": 0.37946837733832983,
+        "rmse": 3.1685973600330275,
+        "r2": 0.5953252289031379
+    },
+    "native_model_artifact": "xgb_rul_final.json",
+    "complete_python_artifact": "xgb_rul_final.pkl",
+    "serialization_format": "joblib",
+    "serialization_round_trip_test": "PASS",
+    "model_weights_consistency": "PASS",
+    "inference_determinism_test": "PASS"
+}
