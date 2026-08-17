@@ -1,0 +1,36 @@
+{
+    "model_version": "1.0-FROZEN_FINAL_CANDIDATE",
+    "feature_schema_version": "1.0",
+    "target_transformation": "training_target = log1p(max(0, robust_causal_slope)); predicted_rate = expm1(predicted_transformed_rate)",
+    "preprocessing_rules": {
+        "categorical_normalization": {
+            "material": "Replace 'RVS 304' with 'RVS304' before encoding to map to the same canonical representation."
+        },
+        "imputation": "XGBoost natively handles missing numerical values. No imputation required."
+    },
+    "APPROVED_FEATURE_COLUMNS": [
+        "cycle_index", "wear", "prev_wear", "wear_delta", "rolling_mean_3", "rolling_std_3", "rolling_mean_5", "rolling_std_5", "recent_wear_rate",
+        "Vc", "n", "fz", "Vf", "Ae", "Ap", "z",
+        "Acc_mean", "Acc_median", "Acc_std", "Acc_var", "Acc_rms", "Acc_min", "Acc_max", "Acc_ptp", "Acc_range", "Acc_skew", "Acc_kurtosis", "Acc_crest_factor", "Acc_shape_factor", "Acc_energy",
+        "Acoustic_mean", "Acoustic_median", "Acoustic_std", "Acoustic_var", "Acoustic_rms", "Acoustic_min", "Acoustic_max", "Acoustic_ptp", "Acoustic_range", "Acoustic_skew", "Acoustic_kurtosis", "Acoustic_crest_factor", "Acoustic_shape_factor", "Acoustic_energy",
+        "Fx_mean", "Fx_median", "Fx_std", "Fx_var", "Fx_rms", "Fx_min", "Fx_max", "Fx_ptp", "Fx_range", "Fx_skew", "Fx_kurtosis", "Fx_crest_factor", "Fx_shape_factor", "Fx_energy",
+        "Fy_mean", "Fy_median", "Fy_std", "Fy_var", "Fy_rms", "Fy_min", "Fy_max", "Fy_ptp", "Fy_range", "Fy_skew", "Fy_kurtosis", "Fy_crest_factor", "Fy_shape_factor", "Fy_energy",
+        "Fz_mean", "Fz_median", "Fz_std", "Fz_var", "Fz_rms", "Fz_min", "Fz_max", "Fz_ptp", "Fz_range", "Fz_skew", "Fz_kurtosis", "Fz_crest_factor", "Fz_shape_factor", "Fz_energy",
+        "material", "crop", "Coating"
+    ],
+    "EXCLUDED_LEAKAGE_COLUMNS": [
+        "eol_cycle", "observation_end_cycle", "event_occurred", "actual_remaining_cycles",
+        "survival_lower_bound", "survival_upper_bound", "final_wear", "future_wear",
+        "post_eol_observation", "robust_causal_slope", "wear_rate_k3", "wear_rate_k5", "wear_rate_k10"
+    ],
+    "categorical_features": ["material", "crop", "Coating"],
+    "numerical_features": [
+        "cycle_index", "wear", "prev_wear", "wear_delta", "rolling_mean_3", "rolling_std_3", "rolling_mean_5", "rolling_std_5", "recent_wear_rate",
+        "Vc", "n", "fz", "Vf", "Ae", "Ap", "z",
+        "Acc_mean", "Acc_median", "Acc_std", "Acc_var", "Acc_rms", "Acc_min", "Acc_max", "Acc_ptp", "Acc_range", "Acc_skew", "Acc_kurtosis", "Acc_crest_factor", "Acc_shape_factor", "Acc_energy",
+        "Acoustic_mean", "Acoustic_median", "Acoustic_std", "Acoustic_var", "Acoustic_rms", "Acoustic_min", "Acoustic_max", "Acoustic_ptp", "Acoustic_range", "Acoustic_skew", "Acoustic_kurtosis", "Acoustic_crest_factor", "Acoustic_shape_factor", "Acoustic_energy",
+        "Fx_mean", "Fx_median", "Fx_std", "Fx_var", "Fx_rms", "Fx_min", "Fx_max", "Fx_ptp", "Fx_range", "Fx_skew", "Fx_kurtosis", "Fx_crest_factor", "Fx_shape_factor", "Fx_energy",
+        "Fy_mean", "Fy_median", "Fy_std", "Fy_var", "Fy_rms", "Fy_min", "Fy_max", "Fy_ptp", "Fy_range", "Fy_skew", "Fy_kurtosis", "Fy_crest_factor", "Fy_shape_factor", "Fy_energy",
+        "Fz_mean", "Fz_median", "Fz_std", "Fz_var", "Fz_rms", "Fz_min", "Fz_max", "Fz_ptp", "Fz_range", "Fz_skew", "Fz_kurtosis", "Fz_crest_factor", "Fz_shape_factor", "Fz_energy"
+    ]
+}

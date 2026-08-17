@@ -1,0 +1,10 @@
+{
+    "Python": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:09:58) [MSC v.1929 64 bit (AMD64)]",
+    "XGBoost": "3.3.0",
+    "NumPy": "2.3.5",
+    "Pandas": "2.3.3",
+    "Scikit-learn": "1.7.2",
+    "OS": "Windows 11",
+    "GPU": "NVIDIA RTX 5050",
+    "VRAM": "8 GB"
+}

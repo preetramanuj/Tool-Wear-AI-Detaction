@@ -1,0 +1,652 @@
+Folder PATH listing for volume OS
+Volume serial number is 0000000E 206B:576D
+C:.
+|   README.md
+|   README.md.backup_before_tool_health
+|   tree_output.txt
+|   
++---.github
+|   \---workflows
+|           .gitkeep
+|           
++---.pytest_cache
+|   |   .gitignore
+|   |   CACHEDIR.TAG
+|   |   README.md
+|   |   
+|   \---v
+|       \---cache
+|               lastfailed
+|               nodeids
+|               
++---ai
+|   +---downtime_avoided
+|   |   +---analytics
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---models
+|   |           .gitkeep
+|   |           
+|   +---economic_impact
+|   |   +---analytics
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---models
+|   |           .gitkeep
+|   |           
+|   +---face_detection
+|   |   +---detection
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---embeddings
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---recognition
+|   |           .gitkeep
+|   |           
+|   +---health_prediction
+|   |   |   requirements.txt
+|   |   |   __init__.py
+|   |   |   
+|   |   +---feature_engineering
+|   |   |   |   .gitkeep
+|   |   |   |   build_features.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           build_features.cpython-313.pyc
+|   |   |           __init__.cpython-313.pyc
+|   |   |           
+|   |   +---inference
+|   |   |   |   .gitkeep
+|   |   |   |   image_inference.py
+|   |   |   |   pipeline.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           image_inference.cpython-313.pyc
+|   |   |           pipeline.cpython-313.pyc
+|   |   |           __init__.cpython-313.pyc
+|   |   |           
+|   |   +---models
+|   |   |   |   .gitkeep
+|   |   |   |   image_only_model.py
+|   |   |   |   tool_health_predictor.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           image_only_model.cpython-313.pyc
+|   |   |           tool_health_predictor.cpython-313.pyc
+|   |   |           __init__.cpython-313.pyc
+|   |   |           
+|   |   +---training
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---__pycache__
+|   |           __init__.cpython-313.pyc
+|   |           
+|   +---manufacturing_insights
+|   |   +---inference
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---models
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---training
+|   |           .gitkeep
+|   |           
+|   +---ppe_detection
+|   |   +---inference
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---models
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---training
+|   |           .gitkeep
+|   |           
+|   +---process_parameter_optimization
+|   |   +---inference
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---models
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---training
+|   |           .gitkeep
+|   |           
+|   +---root_cause_analysis
+|   |   +---inference
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---models
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---training
+|   |           .gitkeep
+|   |           
+|   +---rul_prediction
+|   |   +---inference
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---models
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---training
+|   |           .gitkeep
+|   |           
+|   +---tool_detection
+|   |   +---inference
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---models
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---training
+|   |           .gitkeep
+|   |           
+|   \---wear_analysis
+|       +---calibration
+|       |       .gitkeep
+|       |       output_calibration.json
+|       |       
+|       +---feature_extraction
+|       |       .gitkeep
+|       |       
+|       +---preprocessing
+|       |       .gitkeep
+|       |       
+|       +---segmentation
+|       |       .gitkeep
+|       |       
+|       +---utils
+|       |       .gitkeep
+|       |       
+|       +---validation
+|       |       .gitkeep
+|       |       
+|       \---wear_measurement
+|           |   .gitkeep
+|           |   model.py
+|           |   
+|           \---__pycache__
+|                   model.cpython-313.pyc
+|                   
++---backend
+|   |   test_model.py
+|   |   
+|   +---api
+|   |   +---dependencies
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---routes
+|   |       |   .gitkeep
+|   |       |   tool_detection_routes.py
+|   |       |   
+|   |       \---__pycache__
+|   |               tool_detection_routes.cpython-314.pyc
+|   |               
+|   +---app
+|   |   |   .gitkeep
+|   |   |   main.py
+|   |   |   
+|   |   \---__pycache__
+|   |           main.cpython-314.pyc
+|   |           
+|   +---core
+|   |   |   .gitkeep
+|   |   |   config.py
+|   |   |   
+|   |   \---__pycache__
+|   |           config.cpython-314.pyc
+|   |           
+|   +---database
+|   |       .gitkeep
+|   |       
+|   +---services
+|   |   |   .gitkeep
+|   |   |   tool_detection_service.py
+|   |   |   
+|   |   \---__pycache__
+|   |           tool_detection_service.cpython-314.pyc
+|   |           
+|   +---tests
+|   |   |   .gitkeep
+|   |   |   test_tool_detection_api.py
+|   |   |   test_tool_detection_model.py
+|   |   |   
+|   |   +---health_prediction
+|   |   |   |   test_features.py
+|   |   |   |   test_inference.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           test_features.cpython-313-pytest-9.1.1.pyc
+|   |   |           test_inference.cpython-313-pytest-9.1.1.pyc
+|   |   |           __init__.cpython-313.pyc
+|   |   |           
+|   |   \---__pycache__
+|   |           test_tool_detection_api.cpython-314-pytest-9.1.1.pyc
+|   |           test_tool_detection_model.cpython-314-pytest-9.1.1.pyc
+|   |           
+|   \---utils
+|       |   .gitkeep
+|       |   model_loader.py
+|       |   
+|       \---__pycache__
+|               model_loader.cpython-314.pyc
+|               
++---config
+|       .gitkeep
+|       wear_analysis.json
+|       
++---datasets
+|   |   data.yaml
+|   |   MATWI_DATASET_INFO.md
+|   |   README.md
+|   |   sample_cutting_tool.jpg
+|   |   
+|   +---annotations
+|   |   +---classification
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---detection
+|   |   |       .gitkeep
+|   |   |       data.yaml
+|   |   |       
+|   |   \---segmentation
+|   |           .gitkeep
+|   |           
+|   +---metadata
+|   |   \---wear_analysis
+|   |       |   calibration_parameters.json
+|   |       |   roi_resolution_validation_sweep.csv
+|   |       |   test_calibrated.csv
+|   |       |   
+|   |       \---splits
+|   |               test_split.csv
+|   |               train_split.csv
+|   |               val_split.csv
+|   |               
+|   +---processed
+|   |   +---economic_impact
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---manufacturing_insights
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---optimization
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---root_cause
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---rul
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---tool_wear
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---wear_features
+|   |           .gitkeep
+|   |           
+|   +---raw
+|   |   +---downtime
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---face
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---machining
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---manufacturing
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---operator
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---ppe
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---tool_wear
+|   |           .gitkeep
+|   |           
+|   \---splits
+|           .gitkeep
+|           
++---docs
+|   +---api
+|   |       .gitkeep
+|   |       
+|   +---architecture
+|   |       .gitkeep
+|   |       
+|   +---dataset
+|   |       .gitkeep
+|   |       
+|   +---deployment
+|   |       .gitkeep
+|   |       health_prediction_DEPLOYMENT.md
+|   |       health_prediction_FINAL_HANDOFF.md
+|   |       health_prediction_manifest.json
+|   |       
+|   +---models
+|   |       .gitkeep
+|   |       
+|   +---research
+|   |       .gitkeep
+|   |       health_prediction_final_report.md
+|   |       
+|   \---wear_analysis
+|           MIGRATION_MANIFEST.md
+|           MODEL_INVENTORY.md
+|           
++---frontend
+|   +---public
+|   |   \---assets
+|   |           .gitkeep
+|   |           
+|   \---src
+|       +---components
+|       |   +---Alerts
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---Charts
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---DowntimeAvoided
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---EconomicImpact
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---FaceDetection
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---MachineStatus
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---Maintenance
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---ManufacturingInsights
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---ProcessOptimization
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---RootCauseAnalysis
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---RULPrediction
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---ToolHealth
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---ToolInspection
+|       |   |       .gitkeep
+|       |   |       
+|       |   \---WearAnalysis
+|       |           .gitkeep
+|       |           
+|       +---hooks
+|       |       .gitkeep
+|       |       
+|       +---pages
+|       |       .gitkeep
+|       |       
+|       +---services
+|       |       .gitkeep
+|       |       
+|       \---utils
+|               .gitkeep
+|               
++---models
+|   +---downtime_avoided
+|   |       .gitkeep
+|   |       
+|   +---economic_impact
+|   |       .gitkeep
+|   |       
+|   +---face_detection
+|   |       .gitkeep
+|   |       
+|   +---health_prediction
+|   |   |   .gitkeep
+|   |   |   
+|   |   \---image_only_wear
+|   |           model.pt
+|   |           model_metadata.json
+|   |           target_scaler.pkl
+|   |           
+|   +---manufacturing_insights
+|   |       .gitkeep
+|   |       
+|   +---ppe_detection
+|   |       .gitkeep
+|   |       
+|   +---process_parameter_optimization
+|   |       .gitkeep
+|   |       
+|   +---root_cause_analysis
+|   |       .gitkeep
+|   |       
+|   +---rul_prediction
+|   |       .gitkeep
+|   |       
+|   +---tool_detection
+|   |       inference.py
+|   |       
+|   \---wear_analysis
+|           .gitkeep
+|           final_optimized_384px.pth
+|           
++---notebook
+|   +---face-detection
+|   |       face-detection (1).ipynb
+|   |       
+|   +---health_prediction
+|   |       03_image_only_wear_analysis.ipynb
+|   |       
+|   +---tool-detection
+|   |       tool-detection.ipynb
+|   |       
+|   \---wear_analysis
+|           01_wear_analysis_training_and_experiments.ipynb
+|           02_wear_analysis_final_validation_and_audit.ipynb
+|           
++---result
+|   |   .gitkeep
+|   |   README.md
+|   |   sample_cutting_tool.jpg
+|   |   
+|   +---health_prediction
+|   |   \---image_only
+|   |           actual_vs_predicted.png
+|   |           metrics.json
+|   |           per_set_metrics.csv
+|   |           predictions.csv
+|   |           residuals.png
+|   |           
+|   +---plots
+|   |       BoxF1_curve.png
+|   |       BoxPR_curve.png
+|   |       BoxP_curve.png
+|   |       BoxR_curve.png
+|   |       confusion_matrix.png
+|   |       confusion_matrix_normalized.png
+|   |       labels.jpg
+|   |       README.md
+|   |       results.png
+|   |       train_batch0.jpg
+|   |       train_batch1.jpg
+|   |       train_batch2.jpg
+|   |       val_batch0_labels.jpg
+|   |       val_batch0_pred.jpg
+|   |       val_batch1_labels.jpg
+|   |       val_batch1_pred.jpg
+|   |       
+|   +---predictions
+|   |       test_detection_result.jpg
+|   |       test_tool_roi_crop.jpg
+|   |       
+|   +---report
+|   |       README.md
+|   |       
+|   +---reports
+|   |       BENCHMARK_REPORT.md
+|   |       MODEL_EVALUATION_REPORT.md
+|   |       README.md
+|   |       
+|   +---tool_detection
+|   |   |   final_report.md
+|   |   |   
+|   |   +---confusion_matrix
+|   |   |       confusion_matrix.png
+|   |   |       
+|   |   +---metrics
+|   |   |       confusion_matrix_normalized.png
+|   |   |       
+|   |   +---plots
+|   |   |       BoxF1_curve.png
+|   |   |       BoxPR_curve.png
+|   |   |       BoxP_curve.png
+|   |   |       BoxR_curve.png
+|   |   |       confusion_matrix.png
+|   |   |       confusion_matrix_normalized.png
+|   |   |       labels.jpg
+|   |   |       README.md
+|   |   |       results.png
+|   |   |       train_batch0.jpg
+|   |   |       train_batch1.jpg
+|   |   |       train_batch2.jpg
+|   |   |       val_batch0_labels.jpg
+|   |   |       val_batch0_pred.jpg
+|   |   |       val_batch1_labels.jpg
+|   |   |       val_batch1_pred.jpg
+|   |   |       
+|   |   +---predictions
+|   |   |       results.png
+|   |   |       
+|   |   +---reports
+|   |   |       FINAL_REPORT.md
+|   |   |       README.md
+|   |   |       
+|   |   +---test_evaluation
+|   |   |       BoxF1_curve.png
+|   |   |       BoxPR_curve.png
+|   |   |       BoxP_curve.png
+|   |   |       BoxR_curve.png
+|   |   |       confusion_matrix.png
+|   |   |       confusion_matrix_normalized.png
+|   |   |       val_batch0_labels.jpg
+|   |   |       val_batch0_pred.jpg
+|   |   |       val_batch1_labels.jpg
+|   |   |       val_batch1_pred.jpg
+|   |   |       val_batch2_labels.jpg
+|   |   |       val_batch2_pred.jpg
+|   |   |       
+|   |   \---yolo11_matwi_10epochs
+|   |       |   args.yaml
+|   |       |   BoxF1_curve.png
+|   |       |   BoxPR_curve.png
+|   |       |   BoxP_curve.png
+|   |       |   BoxR_curve.png
+|   |       |   confusion_matrix.png
+|   |       |   confusion_matrix_normalized.png
+|   |       |   labels.jpg
+|   |       |   results.csv
+|   |       |   results.png
+|   |       |   train_batch0.jpg
+|   |       |   train_batch1.jpg
+|   |       |   train_batch2.jpg
+|   |       |   val_batch0_labels.jpg
+|   |       |   val_batch0_pred.jpg
+|   |       |   val_batch1_labels.jpg
+|   |       |   val_batch1_pred.jpg
+|   |       |   
+|   |       \---weights
+|   |               best.pt
+|   |               last.pt
+|   |               
+|   \---wear_analysis
+|       +---calibration
+|       |       calibrated_predictions.csv
+|       |       calibration_parameters_validation_only.json
+|       |       
+|       +---checkpoints
+|       |       baseline_multimodal.pth
+|       |       exp_a_baseline.pth
+|       |       exp_b_roi_focused.pth
+|       |       
+|       +---experiments
+|       |   \---current_state
+|       |           ARTIFACT_MANIFEST.csv
+|       |           CURRENT_STATE.md
+|       |           
+|       +---metrics
+|       |       calibration_variance_analysis.csv
+|       |       final_precalibration_metrics.csv
+|       |       low_wear_calibration_metrics.csv
+|       |       
+|       +---plots
+|       |       constrained_linear_vs_actual.png
+|       |       diagnostic_test_raw.png
+|       |       diagnostic_validation_raw.png
+|       |       isotonic_vs_actual.png
+|       |       
+|       +---predictions
+|       |       final_precalibration_predictions.csv
+|       |       
+|       +---reports
+|       |       calibration_final_report.md
+|       |       
+|       \---robustness
+|           +---metrics
+|           |       combined_robustness_predictions.csv
+|           |       combined_robustness_summary.csv
+|           |       image_robustness_predictions.csv
+|           |       image_robustness_summary.csv
+|           |       robustness_final_decision.csv
+|           |       sensor_robustness_predictions.csv
+|           |       sensor_robustness_summary.csv
+|           |       untouched_baseline_predictions.csv
+|           |       
+|           \---reports
+|                   robustness_final_report.md
+|                   
++---scripts
+|       .gitkeep
+|       
++---shared
+|   +---preprocessing
+|   |       .gitkeep
+|   |       
+|   +---schemas
+|   |       .gitkeep
+|   |       
+|   \---utils
+|           .gitkeep
+|           
+\---storage
+    +---inspections
+    |       .gitkeep
+    |       
+    +---logs
+    |   |   .gitkeep
+    |   |   dataset_download.log
+    |   |   
+    |   \---tool_detection
+    |           dataset_download.log
+    |           
+    +---processed_images
+    |       .gitkeep
+    |       
+    +---reports
+    |       .gitkeep
+    |       
+    \---uploaded_images
+            .gitkeep
+            
