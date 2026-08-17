@@ -1,0 +1,88 @@
+{
+    "model_name": "ToolGuard-AI Wear Analysis Unified Multimodal",
+    "model_version": "Phase2_v1.0",
+    "architecture": "EfficientNet-B0 + Sensor MLP (Fusion dim 514)",
+    "image_size": [
+        384,
+        384
+    ],
+    "target": "Flank Wear (\u00b5m)",
+    "train_sets": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        12,
+        13,
+        14,
+        15
+    ],
+    "validation_sets": [
+        9,
+        10,
+        16
+    ],
+    "test_sets": [
+        11,
+        17
+    ],
+    "train_samples": 1111,
+    "validation_samples": 303,
+    "test_samples": 248,
+    "sensor_features": [
+        "RMS_Force_X",
+        "RMS_Force_Y",
+        "RMS_Force_Z",
+        "RMS_Vibration_X",
+        "RMS_Vibration_Y"
+    ],
+    "modality_dropout": {
+        "img_only": 0.5,
+        "img_sens": 0.5
+    },
+    "optimizer": "AdamW",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.0001,
+    "loss": "HuberLoss",
+    "batch_size": 8,
+    "epochs": 10,
+    "best_epoch": 8,
+    "validation_metrics": {
+        "MAE": 34.80218505859375,
+        "RMSE": 50.46729390314335,
+        "R2": 0.46040743589401245,
+        "MSE": 2546.94775390625,
+        "MedianAE": 24.53125,
+        "MaxAE": 217.1875
+    },
+    "unseen_test_metrics": {
+        "image_only": {
+            "MAE": 47.07,
+            "RMSE": 74.17,
+            "R2": -0.151,
+            "MSE": 5501.01,
+            "MedianAE": 35.98
+        },
+        "image_sensor": {
+            "MAE": 44.28,
+            "RMSE": 72.67,
+            "R2": -0.105,
+            "MSE": 5281.37,
+            "MedianAE": 32.59
+        }
+    },
+    "per_set_metrics": "Available in artifacts/wear_analysis/experiments/unified_multimodal/all_17_modality_metrics.csv",
+    "PyTorch_version": "2.11.0+cu128",
+    "Torchvision_version": "0.26.0+cu128",
+    "CUDA_version": "12.8",
+    "GPU_name": "NVIDIA GeForce RTX 5050 Laptop GPU",
+    "random_seed": 42,
+    "preprocessing_version": "v1.0",
+    "webcam_support": true,
+    "upload_support": true,
+    "creation_timestamp": "2026-08-17T20:21:15.235860"
+}
