@@ -1,265 +1,250 @@
 import os
-import time
-import base64
-import logging
-from typing import Dict, List, Any, Union, Optional, Tuple
-from pathlib import Path
-
 import cv2
 import numpy as np
-from PIL import Image
-import torch
+from pathlib import Path
+from typing import Dict, Any, List, Optional, Tuple
 from ultralytics import YOLO
-
 from backend.core.config import settings
-from backend.utils.model_loader import load_yolo_model, find_model_weights, get_optimal_device
-
-logger = logging.getLogger(__name__)
-
 
 class ToolDetectionService:
     """
-    High-performance inference and testing service for YOLO cutting tool detection models.
-    Supports PyTorch (.pt) weights stored in the result/ directory.
+    Model 1: Cutting Tool Detection Service
+    Executes YOLO11n cutting tool detection, extracts bounding boxes,
+    crops tool ROI for downstream wear/health analysis, and renders visual HUD overlays.
     """
+    
+    def __init__(self):
+        self.model: Optional[YOLO] = None
+        self.model_path: Optional[str] = None
+        self.class_names: Dict[int, str] = {0: "cutting_tool"}
+        self.device: str = "cpu"
+        self._load_model()
 
-    def __init__(self, model_path: Optional[str] = None, device: str = "auto"):
-        self.model_path = find_model_weights(model_path)
-        self.device = get_optimal_device(device)
-        self.model = load_yolo_model(self.model_path, self.device)
-        self.classes = self.model.names if hasattr(self.model, "names") else settings.CLASSES
+    def _load_model(self):
+        for candidate_path in settings.TOOL_DETECTION_MODEL_PATHS:
+            if candidate_path and os.path.exists(candidate_path):
+                try:
+                    self.model = YOLO(candidate_path)
+                    self.model_path = candidate_path
+                    if hasattr(self.model, "names") and isinstance(self.model.names, dict):
+                        self.class_names = self.model.names
+                    print(f"✓ Model 1 (Tool Detection) loaded successfully from: {candidate_path}")
+                    print(f"  Available Classes: {self.class_names}")
+                    return
+                except Exception as e:
+                    print(f"⚠ Failed loading YOLO model from {candidate_path}: {e}")
 
-    def predict(
+        # Fallback to general best.pt if needed
+        fallback = os.path.join(settings.BASE_DIR, "result", "best.pt")
+        if os.path.exists(fallback):
+            try:
+                self.model = YOLO(fallback)
+                self.model_path = fallback
+                if hasattr(self.model, "names") and isinstance(self.model.names, dict):
+                    self.class_names = self.model.names
+                print(f"✓ Model 1 (Tool Detection) fallback loaded from: {fallback}")
+                return
+            except Exception as e:
+                print(f"⚠ Fallback load failed: {e}")
+
+        print("⚠ Model 1 weights not found in standard paths.")
+
+    def is_loaded(self) -> bool:
+        return self.model is not None
+
+    def detect(
         self,
-        image_input: Union[str, Path, np.ndarray, Image.Image, bytes],
-        conf_threshold: float = settings.DEFAULT_CONFIDENCE_THRESHOLD,
-        iou_threshold: float = settings.DEFAULT_IOU_THRESHOLD,
-        imgsz: int = settings.IMAGE_SIZE,
+        image: np.ndarray,
+        conf_threshold: float = 0.25,
+        iou_threshold: float = 0.45,
     ) -> Dict[str, Any]:
         """
-        Run cutting tool detection inference on an input image.
-
-        Args:
-            image_input: File path, OpenCV numpy array (BGR), PIL Image, or image bytes.
-            conf_threshold: Confidence filtering threshold (0.0 to 1.0).
-            iou_threshold: Non-Maximum Suppression (NMS) IOU threshold.
-            imgsz: Input resolution for inference.
-
-        Returns:
-            Dictionary containing detected tools, bounding boxes, inference latency, and metadata.
+        Runs YOLO11n inference on an input image (BGR numpy array).
+        Returns bounding boxes, detection confidence, true class name, and tool ROI crop.
         """
-        img_np, original_shape = self._preprocess_input(image_input)
-        orig_h, orig_w = original_shape[:2]
+        if not self.is_loaded():
+            return {
+                "detected": False,
+                "class": "None",
+                "confidence": 0.0,
+                "bbox": [0, 0, 0, 0],
+                "detections": [],
+                "error": "Tool Detection Model weights are not loaded.",
+            }
 
-        start_time = time.perf_counter()
-
-        # Run inference through Ultralytics YOLO
-        results = self.model.predict(
-            source=img_np,
-            conf=conf_threshold,
-            iou=iou_threshold,
-            imgsz=imgsz,
-            device=self.device,
-            verbose=False,
-        )
-
-        latency_ms = (time.perf_counter() - start_time) * 1000.0
-
-        detections = []
-        result = results[0]
-
-        if result.boxes is not None and len(result.boxes) > 0:
-            boxes = result.boxes
-            for i in range(len(boxes)):
-                xyxy = boxes.xyxy[i].cpu().numpy().tolist()
-                conf = float(boxes.conf[i].cpu().item())
-                cls_id = int(boxes.cls[i].cpu().item())
-                cls_name = self.classes.get(cls_id, f"class_{cls_id}")
-
-                x1, y1, x2, y2 = xyxy
-                width = x2 - x1
-                height = y2 - y1
-
-                # Calculate normalized coordinates
-                normalized_bbox = [
-                    (x1 + width / 2.0) / orig_w,
-                    (y1 + height / 2.0) / orig_h,
-                    width / orig_w,
-                    height / orig_h,
-                ]
-
-                detections.append(
-                    {
-                        "detection_id": i + 1,
+        orig_h, orig_w = image.shape[:2]
+        
+        try:
+            # Run YOLO prediction
+            results = self.model.predict(
+                source=image,
+                conf=conf_threshold,
+                iou=iou_threshold,
+                imgsz=settings.IMAGE_SIZE,
+                verbose=False,
+            )
+            
+            detections: List[Dict[str, Any]] = []
+            
+            if results and len(results) > 0 and len(results[0].boxes) > 0:
+                boxes = results[0].boxes
+                for box in boxes:
+                    xyxy = box.xyxy[0].cpu().numpy().astype(int).tolist()
+                    conf = float(box.conf[0].cpu().numpy())
+                    cls_id = int(box.cls[0].cpu().numpy())
+                    cls_name = self.class_names.get(cls_id, "cutting_tool")
+                    
+                    x1, y1, x2, y2 = xyxy
+                    x1 = max(0, min(orig_w - 1, x1))
+                    y1 = max(0, min(orig_h - 1, y1))
+                    x2 = max(x1 + 1, min(orig_w, x2))
+                    y2 = max(y1 + 1, min(orig_h, y2))
+                    
+                    detections.append({
                         "class_id": cls_id,
                         "class_name": cls_name,
                         "confidence": round(conf, 4),
-                        "confidence_percent": f"{conf * 100.0:.2f}%",
-                        "bbox_xyxy": [round(c, 2) for c in xyxy],
-                        "bbox_xywh": [round(x1, 2), round(y1, 2), round(width, 2), round(height, 2)],
-                        "bbox_normalized": [round(c, 4) for c in normalized_bbox],
-                        "area_pixels": round(width * height, 2),
-                    }
-                )
+                        "confidence_percent": f"{conf * 100:.1f}%",
+                        "bbox": [x1, y1, x2, y2],
+                        "bbox_normalized": [
+                            round(x1 / orig_w, 4),
+                            round(y1 / orig_h, 4),
+                            round(x2 / orig_w, 4),
+                            round(y2 / orig_h, 4),
+                        ],
+                        "area_pixels": (x2 - x1) * (y2 - y1),
+                    })
+                
+                # Sort detections by confidence descending
+                detections.sort(key=lambda d: d["confidence"], reverse=True)
+                primary = detections[0]
+                
+                # Extract Tool ROI Crop
+                px1, py1, px2, py2 = primary["bbox"]
+                tool_roi = image[py1:py2, px1:px2].copy()
+                
+                return {
+                    "detected": True,
+                    "class": primary["class_name"],
+                    "confidence": primary["confidence"],
+                    "confidence_percent": primary["confidence_percent"],
+                    "bbox": primary["bbox"],
+                    "bbox_normalized": primary["bbox_normalized"],
+                    "area_pixels": primary["area_pixels"],
+                    "num_tools_found": len(detections),
+                    "detections": detections,
+                    "cropped_roi_bgr": tool_roi,
+                }
+            else:
+                return {
+                    "detected": False,
+                    "class": "None",
+                    "confidence": 0.0,
+                    "bbox": [0, 0, 0, 0],
+                    "num_tools_found": 0,
+                    "detections": [],
+                    "message": "No cutting tool detected at current confidence threshold.",
+                }
+        except Exception as e:
+            return {
+                "detected": False,
+                "class": "None",
+                "confidence": 0.0,
+                "bbox": [0, 0, 0, 0],
+                "detections": [],
+                "error": f"YOLO Tool Detection inference failed: {str(e)}",
+            }
 
-        return {
-            "status": "success",
-            "model_used": os.path.basename(self.model_path),
-            "model_path": self.model_path,
-            "device": self.device,
-            "image_dimensions": {"width": orig_w, "height": orig_h, "channels": 3},
-            "num_detections": len(detections),
-            "tool_detected": len(detections) > 0,
-            "detections": detections,
-            "inference_latency_ms": round(latency_ms, 2),
-            "fps": round(1000.0 / latency_ms, 1) if latency_ms > 0 else 0.0,
-            "thresholds": {"confidence": conf_threshold, "iou": iou_threshold},
-        }
-
-    def crop_tool_roi(
+    def render_hud_overlay(
         self,
-        image_input: Union[str, Path, np.ndarray, Image.Image, bytes],
-        bbox_xyxy: List[float],
-        padding_ratio: float = 0.05,
+        image: np.ndarray,
+        detection_result: Dict[str, Any],
+        wear_vb_mm: Optional[float] = None,
+        health_status: Optional[str] = None,
     ) -> np.ndarray:
         """
-        Extract the cropped Region of Interest (ROI) for downstream wear classification.
+        Draws high-tech industrial HUD visual overlay with bounding boxes,
+        detection confidence, wear measurement, and health condition badge.
         """
-        img_np, original_shape = self._preprocess_input(image_input)
-        h, w = original_shape[:2]
+        annotated = image.copy()
+        
+        if not detection_result.get("detected", False):
+            cv2.putText(
+                annotated,
+                "STATUS: NO TOOL DETECTED",
+                (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 0, 255),
+                2,
+                cv2.LINE_AA,
+            )
+            return annotated
 
-        x1, y1, x2, y2 = bbox_xyxy
-        bw = x2 - x1
-        bh = y2 - y1
+        for det in detection_result.get("detections", []):
+            x1, y1, x2, y2 = det["bbox"]
+            conf_str = det.get("confidence_percent", "")
+            cls_name = det.get("class_name", "cutting_tool")
+            
+            # Draw industrial bounding box (Cyan #06B6D4)
+            box_color = (212, 182, 6) # BGR for cyan
+            cv2.rectangle(annotated, (x1, y1), (x2, y2), box_color, 2)
+            
+            # Draw corner reticles
+            line_len = min(20, (x2 - x1) // 4, (y2 - y1) // 4)
+            cv2.line(annotated, (x1, y1), (x1 + line_len, y1), (0, 255, 255), 3)
+            cv2.line(annotated, (x1, y1), (x1, y1 + line_len), (0, 255, 255), 3)
+            cv2.line(annotated, (x2, y1), (x2 - line_len, y1), (0, 255, 255), 3)
+            cv2.line(annotated, (x2, y1), (x2, y1 + line_len), (0, 255, 255), 3)
+            cv2.line(annotated, (x1, y2), (x1 + line_len, y2), (0, 255, 255), 3)
+            cv2.line(annotated, (x1, y2), (x1, y2 - line_len), (0, 255, 255), 3)
+            cv2.line(annotated, (x2, y2), (x2 - line_len, y2), (0, 255, 255), 3)
+            cv2.line(annotated, (x2, y2), (x2, y2 - line_len), (0, 255, 255), 3)
+            
+            # Label tag
+            label = f"{cls_name.upper()} [{conf_str}]"
+            cv2.rectangle(annotated, (x1, max(0, y1 - 24)), (x1 + len(label) * 9, y1), (20, 20, 20), -1)
+            cv2.putText(
+                annotated,
+                label,
+                (x1 + 4, max(14, y1 - 6)),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                (0, 255, 255),
+                1,
+                cv2.LINE_AA,
+            )
 
-        # Apply padding
-        pad_x = bw * padding_ratio
-        pad_y = bh * padding_ratio
-
-        crop_x1 = max(0, int(x1 - pad_x))
-        crop_y1 = max(0, int(y1 - pad_y))
-        crop_x2 = min(w, int(x2 + pad_x))
-        crop_y2 = min(h, int(y2 + pad_y))
-
-        cropped = img_np[crop_y1:crop_y2, crop_x1:crop_x2]
-        return cropped
-
-    def draw_detections(
-        self,
-        image_input: Union[str, Path, np.ndarray, Image.Image, bytes],
-        detections_result: Dict[str, Any],
-        show_hud: bool = True,
-    ) -> np.ndarray:
-        """
-        Render visual bounding boxes, confidence badges, and performance HUD.
-        """
-        img_np, _ = self._preprocess_input(image_input)
-        canvas = img_np.copy()
-        h, w = canvas.shape[:2]
-
-        detections = detections_result.get("detections", [])
-
-        # Color palette: Vibrant Cyan-Green for cutting tool ROI
-        box_color = (0, 230, 115)      # BGR: Bright emerald green
-        text_color = (255, 255, 255)   # White
-        badge_bg = (20, 140, 60)       # Dark green
-
-        for det in detections:
-            x1, y1, x2, y2 = [int(v) for v in det["bbox_xyxy"]]
-            conf_str = det["confidence_percent"]
-            label_text = f"{det['class_name'].upper()}: {conf_str}"
-
-            # Draw outer glow and bounding box
-            cv2.rectangle(canvas, (x1, y1), (x2, y2), box_color, 2, cv2.LINE_AA)
-
-            # Draw corner accents for high-tech HUD look
-            corner_len = min(20, (x2 - x1) // 4, (y2 - y1) // 4)
-            corner_color = (0, 255, 255)  # Yellow accents
-            thickness = 3
-            # Top-left
-            cv2.line(canvas, (x1, y1), (x1 + corner_len, y1), corner_color, thickness)
-            cv2.line(canvas, (x1, y1), (x1, y1 + corner_len), corner_color, thickness)
-            # Top-right
-            cv2.line(canvas, (x2, y1), (x2 - corner_len, y1), corner_color, thickness)
-            cv2.line(canvas, (x2, y1), (x2, y1 + corner_len), corner_color, thickness)
-            # Bottom-left
-            cv2.line(canvas, (x1, y2), (x1 + corner_len, y2), corner_color, thickness)
-            cv2.line(canvas, (x1, y2), (x1, y2 - corner_len), corner_color, thickness)
-            # Bottom-right
-            cv2.line(canvas, (x2, y2), (x2 - corner_len, y2), corner_color, thickness)
-            cv2.line(canvas, (x2, y2), (x2, y2 - corner_len), corner_color, thickness)
-
-            # Label badge
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            scale = 0.55
-            (tw, th), _ = cv2.getTextSize(label_text, font, scale, 1)
-            badge_y1 = max(0, y1 - th - 10)
-            badge_y2 = y1
-            badge_x2 = min(w, x1 + tw + 12)
-
-            cv2.rectangle(canvas, (x1, badge_y1), (badge_x2, badge_y2), badge_bg, -1)
-            cv2.rectangle(canvas, (x1, badge_y1), (badge_x2, badge_y2), box_color, 1)
-            cv2.putText(canvas, label_text, (x1 + 6, badge_y2 - 5), font, scale, text_color, 1, cv2.LINE_AA)
-
-        if show_hud:
-            # Top HUD banner
-            hud_text = f"ToolGuard AI | Model: {detections_result.get('model_used')} | Latency: {detections_result.get('inference_latency_ms')} ms ({detections_result.get('fps')} FPS)"
-            cv2.rectangle(canvas, (0, 0), (w, 28), (15, 15, 15), -1)
-            cv2.putText(canvas, hud_text, (10, 19), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 220, 255), 1, cv2.LINE_AA)
-
-        return canvas
-
-    def encode_image_to_base64(self, image_np: np.ndarray, format: str = ".jpg") -> str:
-        """
-        Encode an OpenCV image to base64 JPEG/PNG string.
-        """
-        _, buffer = cv2.imencode(format, image_np)
-        return base64.b64encode(buffer).decode("utf-8")
-
-    def get_model_metadata(self) -> Dict[str, Any]:
-        """
-        Return technical metadata and state of the loaded model.
-        """
-        weights_size_mb = (
-            os.path.getsize(self.model_path) / (1024 * 1024)
-            if os.path.exists(self.model_path)
-            else 0.0
+        # Draw Global HUD Telemetry Header
+        cv2.rectangle(annotated, (10, 10), (320, 65), (15, 20, 30), -1)
+        cv2.rectangle(annotated, (10, 10), (320, 65), (212, 182, 6), 1)
+        
+        cv2.putText(
+            annotated,
+            f"TOOLGUARD-AI VISION HUD",
+            (20, 30),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            (0, 255, 255),
+            1,
+            cv2.LINE_AA,
         )
-        return {
-            "model_name": "YOLO11n Cutting Tool Detector",
-            "weights_path": self.model_path,
-            "weights_filename": os.path.basename(self.model_path),
-            "file_size_mb": round(weights_size_mb, 2),
-            "device": self.device,
-            "classes": self.classes,
-            "task": "detect",
-            "is_cuda": "cuda" in str(self.device),
-        }
+        
+        telemetry_txt = f"WEAR VB: {wear_vb_mm:.3f}mm" if wear_vb_mm is not None else "WEAR: ASSESSING..."
+        if health_status:
+            telemetry_txt += f" | {health_status}"
+            
+        cv2.putText(
+            annotated,
+            telemetry_txt,
+            (20, 52),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            (255, 255, 255),
+            1,
+            cv2.LINE_AA,
+        )
 
-    def _preprocess_input(
-        self, image_input: Union[str, Path, np.ndarray, Image.Image, bytes]
-    ) -> Tuple[np.ndarray, Tuple[int, int, int]]:
-        """
-        Convert diverse image input types into standard OpenCV BGR numpy array.
-        """
-        if isinstance(image_input, (str, Path)):
-            path_str = str(image_input)
-            if not os.path.exists(path_str):
-                raise FileNotFoundError(f"Image path not found: {path_str}")
-            img_bgr = cv2.imread(path_str)
-            if img_bgr is None:
-                raise ValueError(f"Failed to decode image from path: {path_str}")
-        elif isinstance(image_input, bytes):
-            nparr = np.frombuffer(image_input, np.uint8)
-            img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            if img_bgr is None:
-                raise ValueError("Failed to decode image from byte buffer.")
-        elif isinstance(image_input, Image.Image):
-            rgb_arr = np.array(image_input)
-            img_bgr = cv2.cvtColor(rgb_arr, cv2.COLOR_RGB2BGR)
-        elif isinstance(image_input, np.ndarray):
-            img_bgr = image_input
-        else:
-            raise TypeError(f"Unsupported image input type: {type(image_input)}")
+        return annotated
 
-        return img_bgr, img_bgr.shape
+tool_detection_service = ToolDetectionService()

@@ -5,6 +5,19 @@
 > automatic cutting-tool wear assessment and Remaining Useful Life (RUL)
 > prediction.
 
+how to run 
+
+cd frontend
+npm run dev
+
+
+python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+
+
+
+
+
+
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![OpenCV](https://img.shields.io/badge/OpenCV-Computer%20Vision-green)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-Deep%20Learning-orange)
