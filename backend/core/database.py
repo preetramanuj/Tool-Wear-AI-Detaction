@@ -4,8 +4,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from backend.core.config import settings
 
-# Ensure storage directory exists
+# Ensure storage and data directories exist
 os.makedirs(settings.STORAGE_DIR, exist_ok=True)
+os.makedirs(settings.DATA_DIR, exist_ok=True)
 
 engine = create_engine(
     settings.DATABASE_URL,

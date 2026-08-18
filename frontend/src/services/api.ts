@@ -210,3 +210,61 @@ export const getSystemStatus = async (): Promise<SystemStatusResponse> => {
   const response = await apiClient.get<SystemStatusResponse>('/system/status');
   return response.data;
 };
+
+// --- Model 5: Manufacturing Insights API ---
+export const getManufacturingInsights = async (): Promise<any> => {
+  const response = await apiClient.get('/insights/summary');
+  return response.data.data;
+};
+
+export const getMaintenanceCandidates = async (): Promise<any[]> => {
+  const response = await apiClient.get('/insights/candidates');
+  return response.data.candidates;
+};
+
+// --- Model 7: Economic Impact API ---
+export const getEconomicImpact = async (): Promise<any> => {
+  const response = await apiClient.get('/economics/summary');
+  return response.data.data;
+};
+
+export const getEconomicParameters = async (): Promise<any> => {
+  const response = await apiClient.get('/economics/parameters');
+  return response.data.parameters;
+};
+
+export const updateEconomicParameters = async (params: Record<string, any>): Promise<any> => {
+  const response = await apiClient.put('/economics/parameters', params);
+  return response.data.parameters;
+};
+
+// --- Model 8: Machine Downtime Avoided API ---
+export const getDowntimeAnalytics = async (): Promise<any> => {
+  const response = await apiClient.get('/downtime/summary');
+  return response.data.data;
+};
+
+export const logDowntimeEvent = async (eventData: Record<string, any>): Promise<any> => {
+  const response = await apiClient.post('/downtime/events', eventData);
+  return response.data;
+};
+
+// --- Model 9: AI Root Cause Analysis API ---
+export const analyzeRootCause = async (toolId: string, inspectionId?: string): Promise<any> => {
+  const response = await apiClient.get('/root-cause/analyze', {
+    params: { tool_id: toolId, inspection_id: inspectionId },
+  });
+  return response.data;
+};
+
+// --- Full Multi-Model Pipeline Test API ---
+export const testFullPipeline = async (file?: File, toolId: string = 'TL-CNMG-120408'): Promise<any> => {
+  const formData = new FormData();
+  if (file) formData.append('file', file);
+  formData.append('tool_id', toolId);
+
+  const response = await apiClient.post('/models/pipeline-test', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};

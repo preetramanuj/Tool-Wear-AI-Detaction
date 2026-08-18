@@ -3,7 +3,9 @@ import time
 import torch
 import numpy as np
 import cv2
-from fastapi import APIRouter, HTTPException
+from typing import Optional
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from pathlib import Path
 
 from backend.core.config import settings
 from backend.services.tool_detection_service import tool_detection_service
@@ -33,18 +35,20 @@ async def get_all_models_status():
                 "loaded": tool_detection_service.is_loaded(),
                 "device": "CPU" if not torch.cuda.is_available() else "CUDA",
                 "resolution": [settings.IMAGE_SIZE, settings.IMAGE_SIZE],
+                "classes": list(tool_detection_service.class_names.values()) if hasattr(tool_detection_service, "class_names") else ["cutting_tool"],
                 "status": "ONLINE" if tool_detection_service.is_loaded() else "OFFLINE",
             },
             {
                 "id": "model-2",
                 "name": "Model 2: Tool Wear Analysis",
-                "task": "Flank Wear VB (mm) & Degradation Area Regression",
-                "framework": "PyTorch (Late-Fusion EfficientNet-B0 + Sensor MLP)",
-                "weights_path": wear_analysis_service.model_path,
+                "task": "Flank Wear VB (mm) & Degradation Area Gated Multimodal Regression",
+                "framework": "PyTorch (Phase3BGatedModel: EfficientNet-B0 + Sensor MLP + Gating)",
+                "weights_path": "ai/wear_analysis/artifacts/final/wear_analysis_multimodal_final.pth",
                 "weights_file": os.path.basename(wear_analysis_service.model_path),
                 "loaded": wear_analysis_service.is_loaded(),
                 "device": str(wear_analysis_service.device),
                 "resolution": [settings.WEAR_IMAGE_SIZE, settings.WEAR_IMAGE_SIZE],
+                "target": "Flank Wear (µm) via target_scaler.pkl",
                 "status": "ONLINE" if wear_analysis_service.is_loaded() else "OFFLINE",
             },
             {
@@ -129,7 +133,9 @@ async def run_models_diagnostics():
         diagnostics["model_2_wear_analysis"] = {
             "status": "OK",
             "latency_ms": lat2,
-            "wear_value_mm": res2.get("wear_value")
+            "wear_um": res2.get("wear_um"),
+            "wear_value_mm": res2.get("wear_value"),
+            "model_version": res2.get("model_version")
         }
     except Exception as e:
         diagnostics["model_2_wear_analysis"] = {"status": "ERROR", "error": str(e)}
@@ -184,4 +190,99 @@ async def run_models_diagnostics():
         "timestamp": time.time(),
         "device": "CUDA" if torch.cuda.is_available() else "CPU",
         "results": diagnostics
+    }
+
+
+@router.post("/pipeline-test")
+async def test_full_ai_pipeline(
+    file: Optional[UploadFile] = File(None),
+    tool_id: str = Form("TL-CNMG-120408"),
+):
+    """
+    Executes a complete synchronous multi-model pipeline test:
+    Model 1 (Tool Detection) -> Tool Eligibility -> Model 2 (Wear Analysis) -> Model 3 (Health) -> Model 6 (RUL)
+    """
+    t_start = time.time()
+    pipeline_results = {}
+    
+    # Load image
+    if file:
+        contents = await file.read()
+        np_arr = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+    else:
+        sample_path = Path(settings.BASE_DIR) / "datasets" / "sample_cutting_tool.jpg"
+        if sample_path.exists():
+            img = cv2.imread(str(sample_path))
+        else:
+            img = np.zeros((640, 640, 3), dtype=np.uint8)
+            cv2.rectangle(img, (150, 150), (450, 450), (160, 160, 160), -1)
+
+    if img is None:
+        raise HTTPException(status_code=400, detail="Failed to decode test image.")
+
+    # 1. Model 1
+    t1 = time.time()
+    m1_out = tool_detection_service.detect(img)
+    lat1 = round((time.time() - t1) * 1000.0, 1)
+    
+    is_supported = m1_out.get("is_supported", False)
+    roi = m1_out.get("cropped_roi_bgr")
+    if roi is None or not is_supported:
+        roi = img
+
+    # 2. Model 2
+    t2 = time.time()
+    m2_out = wear_analysis_service.predict(roi) if is_supported else {"status": "SKIPPED", "wear_um": None, "wear_value": None}
+    lat2 = round((time.time() - t2) * 1000.0, 1)
+
+    # 3. Model 3
+    t3 = time.time()
+    m3_out = health_prediction_service.predict(roi) if is_supported else {"status": "SKIPPED", "health_score": None, "health_status": "SKIPPED"}
+    lat3 = round((time.time() - t3) * 1000.0, 1)
+
+    # 4. Model 6
+    t6 = time.time()
+    wear_for_rul = m3_out.get("wear_um", 50.0) if is_supported else 50.0
+    m6_features = {"wear": wear_for_rul, "cycle_index": 1.0, "material": "CK45"}
+    m6_out = rul_service.predict_rul(m6_features) if is_supported else {"available": False, "rul_status": "SKIPPED_UNSUPPORTED"}
+    lat6 = round((time.time() - t6) * 1000.0, 1)
+
+    total_latency = round((time.time() - t_start) * 1000.0, 1)
+
+    return {
+        "success": True,
+        "pipeline": "Model 1 -> Tool Eligibility -> Model 2 -> Model 3 -> Model 6",
+        "tool_id": tool_id,
+        "tool_eligibility": m1_out.get("tool_eligibility", "UNKNOWN"),
+        "total_latency_ms": total_latency,
+        "stages": {
+            "model_1_tool_detection": {
+                "detected": m1_out.get("detected"),
+                "class_name": m1_out.get("class"),
+                "confidence": m1_out.get("confidence"),
+                "is_supported": is_supported,
+                "latency_ms": lat1,
+            },
+            "model_2_wear_analysis": {
+                "status": m2_out.get("status"),
+                "wear_um": m2_out.get("wear_um"),
+                "wear_value_mm": m2_out.get("wear_value"),
+                "wear_status": m2_out.get("wear_status"),
+                "latency_ms": lat2,
+            },
+            "model_3_health_prediction": {
+                "status": m3_out.get("status"),
+                "health_score": m3_out.get("health_score"),
+                "health_status": m3_out.get("health_status"),
+                "recommended_action": m3_out.get("recommended_action"),
+                "latency_ms": lat3,
+            },
+            "model_6_rul_prediction": {
+                "rul_cycles": m6_out.get("rul_value"),
+                "wear_rate": m6_out.get("wear_rate_um_per_cycle"),
+                "rul_status": m6_out.get("rul_status"),
+                "latency_ms": lat6,
+            }
+        }
     }

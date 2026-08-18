@@ -28,6 +28,10 @@ from backend.api.routes.alerts_routes import router as alerts_router
 from backend.api.routes.models_routes import router as models_router
 from backend.api.routes.system_routes import router as system_router
 from backend.api.routes.webcam_routes import router as webcam_router
+from backend.api.routes.insights_routes import router as insights_router
+from backend.api.routes.economic_routes import router as economic_router
+from backend.api.routes.downtime_routes import router as downtime_router
+from backend.api.routes.root_cause_routes import router as root_cause_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,6 +47,10 @@ async def lifespan(app: FastAPI):
     print(f"• Model 3 (Health Predict): {'ONLINE' if health_prediction_service.is_loaded() else 'OFFLINE'}")
     print(f"• Model 6 (XGBoost RUL):    {'ONLINE' if rul_service.is_loaded() else 'OFFLINE'}")
     print(f"• Model 4 (Face Engine):    {'ONLINE' if face_detection_service.is_loaded() else 'OFFLINE'}")
+    print(f"• Model 5 (Mfg Insights):   ONLINE")
+    print(f"• Model 7 (Economic Dash):  ONLINE")
+    print(f"• Model 8 (Downtime Avoid): ONLINE")
+    print(f"• Model 9 (Root Cause):     ONLINE")
     print(f"• Person-Tool Association:  ONLINE")
     print(f"• SQLite Database:          CONNECTED ({settings.DATABASE_URL})")
     print("==================================================")
@@ -85,6 +93,10 @@ app.include_router(analytics_router, prefix=settings.API_V1_STR)
 app.include_router(alerts_router, prefix=settings.API_V1_STR)
 app.include_router(models_router, prefix=settings.API_V1_STR)
 app.include_router(system_router, prefix=settings.API_V1_STR)
+app.include_router(insights_router, prefix=settings.API_V1_STR)
+app.include_router(economic_router, prefix=settings.API_V1_STR)
+app.include_router(downtime_router, prefix=settings.API_V1_STR)
+app.include_router(root_cause_router, prefix=settings.API_V1_STR)
 
 @app.get("/health", tags=["System"])
 def health_check():

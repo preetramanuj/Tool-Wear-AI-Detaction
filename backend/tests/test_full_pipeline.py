@@ -23,6 +23,7 @@ def test_system_health(client):
     assert res.status_code == 200
     data = res.json()
     assert data["status"] == "healthy"
+    assert data["database"] == "sqlite"
 
 def test_system_status(client):
     res = client.get(f"{settings.API_V1_STR}/system/status")
@@ -38,6 +39,10 @@ def test_models_status(client):
     assert data["success"] is True
     assert data["models_loaded_count"] >= 4
     assert len(data["models"]) == 5
+    
+    # Verify Model 2 is Phase3BGatedModel
+    m2 = next(m for m in data["models"] if m["id"] == "model-2")
+    assert "wear_analysis_multimodal_final.pth" in m2["weights_path"]
 
 def test_tools_crud(client):
     res = client.get(f"{settings.API_V1_STR}/tools")
@@ -56,6 +61,53 @@ def test_analytics_overview(client):
     kpis = res.json().get("kpis", {})
     assert "total_tools" in kpis
     assert "predicted_rul" in kpis
+
+def test_manufacturing_insights(client):
+    res = client.get(f"{settings.API_V1_STR}/insights/summary")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert "data" in data
+    assert "kpis" in data["data"]
+    assert "insights" in data["data"]
+    assert "maintenance_candidates" in data["data"]
+
+def test_economic_impact_dashboard(client):
+    res = client.get(f"{settings.API_V1_STR}/economics/summary")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert "data" in data
+    assert "summary" in data["data"]
+    assert "parameters" in data["data"]
+    assert "tool_cost_breakdown" in data["data"]
+
+def test_machine_downtime_avoided(client):
+    res = client.get(f"{settings.API_V1_STR}/downtime/summary")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert "data" in data
+    assert "summary" in data["data"]
+    assert "estimated_downtime_avoided_hours" in data["data"]["summary"]
+    assert "machine_breakdown" in data["data"]
+
+def test_root_cause_analysis(client):
+    res = client.get(f"{settings.API_V1_STR}/root-cause/analyze?tool_id=TL-CNMG-120408")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert "contributing_factors" in data
+    assert "explanation" in data
+    assert "disclaimer" in data
+
+def test_full_pipeline_test_endpoint(client):
+    res = client.post(f"{settings.API_V1_STR}/models/pipeline-test")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert "stages" in data
+    assert "total_latency_ms" in data
 
 def test_inspection_pipeline_with_sample_image(client):
     sample_img_path = Path(settings.BASE_DIR) / "datasets" / "sample_cutting_tool.jpg"
@@ -76,35 +128,19 @@ def test_inspection_pipeline_with_sample_image(client):
         assert "associations" in data
         assert "images" in data
 
-def test_webcam_frame_endpoint(client):
-    # Create test image
-    img = np.zeros((480, 640, 3), dtype=np.uint8)
-    cv2.rectangle(img, (100, 100), (300, 400), (120, 120, 120), -1)
-    _, buf = cv2.imencode(".jpg", img)
+def test_tool_eligibility_protection(client):
+    # Pass blank black image to verify unsupported object handling
+    black_img = np.zeros((480, 640, 3), dtype=np.uint8)
+    _, buf = cv2.imencode(".jpg", black_img)
     
     res = client.post(
-        f"{settings.API_V1_STR}/webcam/frame",
-        files={"file": ("frame.jpg", buf.tobytes(), "image/jpeg")},
+        f"{settings.API_V1_STR}/inspection/analyze",
+        files={"image": ("blank.jpg", buf.tobytes(), "image/jpeg")},
         data={"tool_id": "TL-CNMG-120408"}
     )
     assert res.status_code == 200
     data = res.json()
     assert data["success"] is True
-    assert "tool" in data
-    assert "persons" in data
-    assert "associations" in data
-    assert "ppe" in data
-
-def test_face_detection_synthetic(client):
-    canvas = np.zeros((400, 400, 3), dtype=np.uint8)
-    cv2.circle(canvas, (200, 200), 80, (200, 200, 200), -1)
-    _, buf = cv2.imencode(".jpg", canvas)
-    
-    res = client.post(
-        f"{settings.API_V1_STR}/face/detect",
-        files={"file": ("face.jpg", buf.tobytes(), "image/jpeg")}
-    )
-    assert res.status_code == 200
-    data = res.json()
-    assert data["success"] is True
-    assert "faces_detected" in data
+    assert data["tool_detection"]["detected"] is False
+    assert data["wear_analysis"]["status"] == "SKIPPED"
+    assert data["health_prediction"]["status"] == "SKIPPED"

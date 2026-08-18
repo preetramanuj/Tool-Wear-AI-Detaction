@@ -73,6 +73,20 @@ class ToolDetectionService:
             }
 
         orig_h, orig_w = image.shape[:2]
+
+        # Reject completely black, blank, or zero-contrast frames (e.g. lens caps, dark voids)
+        if float(np.std(image)) < 6.0 or float(np.mean(image)) < 4.0:
+            return {
+                "detected": False,
+                "class": "None",
+                "confidence": 0.0,
+                "bbox": [0, 0, 0, 0],
+                "num_tools_found": 0,
+                "tool_eligibility": "NO_TOOL",
+                "is_supported": False,
+                "detections": [],
+                "message": "Blank or low-contrast frame. No cutting tool present.",
+            }
         
         try:
             # Run YOLO prediction
@@ -123,6 +137,10 @@ class ToolDetectionService:
                 px1, py1, px2, py2 = primary["bbox"]
                 tool_roi = image[py1:py2, px1:px2].copy()
                 
+                # Check tool domain eligibility
+                is_supported = primary["class_name"] in ["cutting_tool"] and primary["confidence"] >= conf_threshold
+                eligibility_status = "ELIGIBLE" if is_supported else "UNSUPPORTED"
+                
                 return {
                     "detected": True,
                     "class": primary["class_name"],
@@ -132,8 +150,11 @@ class ToolDetectionService:
                     "bbox_normalized": primary["bbox_normalized"],
                     "area_pixels": primary["area_pixels"],
                     "num_tools_found": len(detections),
+                    "tool_eligibility": eligibility_status,
+                    "is_supported": is_supported,
                     "detections": detections,
-                    "cropped_roi_bgr": tool_roi,
+                    "cropped_roi_bgr": tool_roi if is_supported else None,
+                    "message": "Supported cutting tool detected." if is_supported else "Unsupported tool for current wear-analysis model."
                 }
             else:
                 return {
@@ -142,8 +163,10 @@ class ToolDetectionService:
                     "confidence": 0.0,
                     "bbox": [0, 0, 0, 0],
                     "num_tools_found": 0,
+                    "tool_eligibility": "NO_TOOL",
+                    "is_supported": False,
                     "detections": [],
-                    "message": "No cutting tool detected at current confidence threshold.",
+                    "message": "No supported cutting tool detected in image.",
                 }
         except Exception as e:
             return {
@@ -151,9 +174,21 @@ class ToolDetectionService:
                 "class": "None",
                 "confidence": 0.0,
                 "bbox": [0, 0, 0, 0],
+                "tool_eligibility": "ERROR",
+                "is_supported": False,
                 "detections": [],
                 "error": f"YOLO Tool Detection inference failed: {str(e)}",
             }
+
+    def check_tool_eligibility(self, detection_result: Dict[str, Any]) -> Tuple[bool, str]:
+        """
+        Returns (is_eligible, explanation_string).
+        """
+        if not detection_result.get("detected", False):
+            return False, "No cutting tool detected in image."
+        if not detection_result.get("is_supported", False):
+            return False, "Detected object is outside the trained CNC cutting insert domain."
+        return True, "Tool is eligible for wear and health analysis."
 
     def render_hud_overlay(
         self,

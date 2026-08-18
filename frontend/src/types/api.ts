@@ -298,3 +298,236 @@ export interface RULSchemaResponse {
   target_unit: string;
   eol_threshold_um: number;
 }
+
+// --- Model 5: Manufacturing Insights Types ---
+export interface ManufacturingInsightItem {
+  type: string;
+  severity: 'INFO' | 'WARNING' | 'CRITICAL';
+  tool_id?: string | null;
+  machine_id?: string | null;
+  title: string;
+  message: string;
+  data_evidence?: string;
+}
+
+export interface MachineComparisonItem {
+  machine_id: string;
+  name: string;
+  status: string;
+  total_inspections: number;
+  avg_wear_um: number;
+  critical_alerts: number;
+}
+
+export interface ToolComparisonItem {
+  tool_id: string;
+  tool_name: string;
+  material: string;
+  coating: string;
+  machine_id: string;
+  current_wear_um: number;
+  current_wear_vb_mm: number;
+  rul_cycles?: number | null;
+  wear_rate?: number | null;
+  status: string;
+  total_inspections: number;
+}
+
+export interface ManufacturingInsightsReport {
+  has_sufficient_data: boolean;
+  summary: string;
+  kpis: {
+    total_tools: number;
+    active_tools: number;
+    tools_requiring_inspection: number;
+    avg_wear_um: number | null;
+    avg_health_score: number | null;
+    avg_rul_cycles: number | null;
+  };
+  insights: ManufacturingInsightItem[];
+  maintenance_candidates: ToolComparisonItem[];
+  machine_comparison: MachineComparisonItem[];
+  tool_comparison: ToolComparisonItem[];
+  trends: {
+    wear: Array<{ timestamp: string; tool_id: string; wear_um: number }>;
+    health: Array<{ timestamp: string; tool_id: string; health_score: number }>;
+    rul: Array<{ timestamp: string; tool_id: string; rul_cycles: number }>;
+  };
+}
+
+// --- Model 7: Economic Impact Types ---
+export interface EconomicParameters {
+  tool_replacement_cost: number;
+  machine_operating_cost_per_hour: number;
+  downtime_cost_per_hour: number;
+  maintenance_labor_cost_per_hour: number;
+  average_unplanned_downtime_hours: number;
+  planned_replacement_hours: number;
+  production_value_per_hour: number;
+  currency_symbol?: string;
+}
+
+export interface ToolCostItem {
+  tool_id: string;
+  tool_name: string;
+  machine_id: string;
+  status: string;
+  replacement_cost: number;
+  maintenance_cost: number;
+  total_cost: number;
+  data_type: 'ACTUAL' | 'ESTIMATED' | 'SIMULATED';
+}
+
+export interface EconomicImpactReport {
+  currency: string;
+  parameters: EconomicParameters;
+  summary: {
+    estimated_downtime_cost: {
+      value: number;
+      label: string;
+      data_type: 'ACTUAL' | 'ESTIMATED' | 'SIMULATED';
+      hours: number;
+    };
+    estimated_maintenance_cost: {
+      value: number;
+      label: string;
+      data_type: 'ACTUAL' | 'ESTIMATED' | 'SIMULATED';
+      hours: number;
+    };
+    estimated_potential_savings: {
+      value: number;
+      label: string;
+      data_type: 'ACTUAL' | 'ESTIMATED' | 'SIMULATED';
+      avoided_hours: number;
+    };
+    tool_replacement_expenditure: {
+      value: number;
+      label: string;
+      data_type: 'ACTUAL' | 'ESTIMATED' | 'SIMULATED';
+      tool_count: number;
+    };
+  };
+  tool_cost_breakdown: ToolCostItem[];
+  financial_trend: Array<{
+    period: string;
+    downtime_cost: number;
+    maintenance_cost: number;
+    potential_avoided_savings: number;
+    data_type: string;
+  }>;
+  disclaimer: string;
+}
+
+// --- Model 8: Machine Downtime Avoided Types ---
+export interface DowntimeEventItem {
+  downtime_id: string;
+  machine_id: string;
+  tool_id: string;
+  cause: string;
+  is_unplanned: boolean;
+  type_label: string;
+  duration_hours: number;
+  total_loss: number;
+  estimated_avoided_hours: number;
+  timestamp: string;
+}
+
+export interface MachineDowntimeItem {
+  machine_id: string;
+  machine_name: string;
+  status: string;
+  location: string;
+  total_downtime_hours: number;
+  unplanned_hours: number;
+  planned_hours: number;
+  estimated_avoided_hours: number;
+  financial_loss: number;
+}
+
+export interface DowntimeReport {
+  summary: {
+    total_downtime_hours: number;
+    planned_downtime_hours: number;
+    unplanned_downtime_hours: number;
+    estimated_downtime_avoided_hours: number;
+    actual_downtime_cost: number;
+    estimated_avoided_cost: number;
+    total_events_count: number;
+    currency: string;
+  };
+  machine_breakdown: MachineDowntimeItem[];
+  events: DowntimeEventItem[];
+  calculation_basis: {
+    downtime_cost_per_hour: number;
+    avg_unplanned_hours: number;
+    planned_replacement_hours: number;
+    label: string;
+  };
+}
+
+// --- Model 9: Root Cause Types ---
+export interface RootCauseFactor {
+  feature: string;
+  name: string;
+  current_value: number;
+  nominal_value: number;
+  unit: string;
+  deviation_percent: number;
+  importance_score: number;
+  relative_contribution_percent: number;
+  influence: 'HIGH' | 'MODERATE' | 'LOW';
+  observation: string;
+}
+
+export interface RootCauseReport {
+  success: boolean;
+  tool_id: string;
+  tool_name: string;
+  machine_id: string;
+  workpiece_material: string;
+  coating: string;
+  current_wear_um: number;
+  current_health_status: string;
+  current_rul_cycles?: number | null;
+  explanation: string;
+  contributing_factors: RootCauseFactor[];
+  disclaimer: string;
+}
+
+// --- Pipeline Test Types ---
+export interface PipelineTestResponse {
+  success: boolean;
+  pipeline: string;
+  tool_id: string;
+  tool_eligibility: string;
+  total_latency_ms: number;
+  stages: {
+    model_1_tool_detection: {
+      detected: boolean;
+      class_name: string;
+      confidence: number;
+      is_supported: boolean;
+      latency_ms: number;
+    };
+    model_2_wear_analysis: {
+      status: string;
+      wear_um: number | null;
+      wear_value_mm: number | null;
+      wear_status?: string;
+      latency_ms: number;
+    };
+    model_3_health_prediction: {
+      status: string;
+      health_score: number | null;
+      health_status: string;
+      recommended_action?: string;
+      latency_ms: number;
+    };
+    model_6_rul_prediction: {
+      rul_cycles: number | null;
+      wear_rate: number | null;
+      rul_status: string;
+      latency_ms: number;
+    };
+  };
+}

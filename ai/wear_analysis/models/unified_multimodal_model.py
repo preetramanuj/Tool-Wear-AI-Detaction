@@ -3,11 +3,12 @@ import torch.nn as nn
 from torchvision import models
 
 class UnifiedMultimodalWearModel(nn.Module):
-    def __init__(self, sensor_dim=5, embedding_dim=256):
+    def __init__(self, sensor_dim=5, embedding_dim=256, pretrained=False):
         super(UnifiedMultimodalWearModel, self).__init__()
         
         # 1. Image Encoder (EfficientNet-B0)
-        self.cnn = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT)
+        eff_weights = models.EfficientNet_B0_Weights.DEFAULT if pretrained else None
+        self.cnn = models.efficientnet_b0(weights=eff_weights)
         cnn_out_dim = self.cnn.classifier[1].in_features  # 1280
         self.cnn.classifier = nn.Identity()
         

@@ -14,9 +14,19 @@ import {
   Timer,
   ChevronDown,
   ChevronUp,
+  Upload,
+  Workflow,
+  ShieldAlert,
 } from 'lucide-react';
-import { getModelsStatus, runModelsDiagnostics, getRULSchema, predictRUL, getRULStatus } from '../services/api';
-import { ModelsStatusResponse, RULSchemaResponse } from '../types/api';
+import {
+  getModelsStatus,
+  runModelsDiagnostics,
+  getRULSchema,
+  predictRUL,
+  getRULStatus,
+  testFullPipeline,
+} from '../services/api';
+import { ModelsStatusResponse, RULSchemaResponse, PipelineTestResponse } from '../types/api';
 
 export const Models: React.FC = () => {
   const [modelsData, setModelsData] = useState<ModelsStatusResponse | null>(null);
@@ -37,6 +47,12 @@ export const Models: React.FC = () => {
   const [testVc, setTestVc] = useState<number>(180.0);
   const [isTestingRUL, setIsTestingRUL] = useState<boolean>(false);
   const [rulTestResult, setRulTestResult] = useState<any>(null);
+
+  // End-to-End Pipeline Test Bench
+  const [pipelineImage, setPipelineImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isRunningPipeline, setIsRunningPipeline] = useState<boolean>(false);
+  const [pipelineResult, setPipelineResult] = useState<PipelineTestResponse | null>(null);
 
   const fetchStatus = async () => {
     try {
@@ -86,6 +102,26 @@ export const Models: React.FC = () => {
       console.error('RUL test error:', err);
     } finally {
       setIsTestingRUL(false);
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setPipelineImage(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRunPipelineTest = async () => {
+    setIsRunningPipeline(true);
+    try {
+      const res = await testFullPipeline(pipelineImage || undefined);
+      setPipelineResult(res);
+    } catch (err) {
+      console.error('Pipeline test failed:', err);
+    } finally {
+      setIsRunningPipeline(false);
     }
   };
 
@@ -223,6 +259,108 @@ export const Models: React.FC = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* FULL MULTI-MODEL PIPELINE TEST BENCH */}
+      <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs font-mono text-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <Workflow className="w-5 h-5 text-sky-600" />
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 uppercase">
+                End-to-End Multi-Model Inspection Pipeline Test Bench
+              </h2>
+              <span className="text-[11px] text-slate-500">
+                Model 1 (YOLO11n) → Tool Domain Eligibility → Model 2 (Phase3B Wear) → Model 3 (Health) → Model 6 (XGBoost RUL)
+              </span>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-200 self-start sm:self-auto">
+            PIPELINE INTEGRATION TEST
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+            <label className="block text-[11px] font-bold text-slate-700">Test Image Input</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100"
+            />
+            {imagePreview ? (
+              <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover rounded border border-slate-200" />
+            ) : (
+              <div className="w-full h-32 bg-slate-100 border border-dashed border-slate-300 rounded flex items-center justify-center text-slate-400 text-[10px]">
+                No file chosen (uses synthetic cutting tool)
+              </div>
+            )}
+            <button
+              onClick={handleRunPipelineTest}
+              disabled={isRunningPipeline}
+              className="w-full py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white rounded text-xs font-semibold flex items-center justify-center gap-2 transition"
+            >
+              {isRunningPipeline ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+              RUN FULL PIPELINE TEST
+            </button>
+          </div>
+
+          {/* Results Panel */}
+          <div className="md:col-span-2 p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <span className="font-bold text-slate-800">Pipeline Execution Diagnostics</span>
+              {pipelineResult && (
+                <span className="text-sky-700 font-bold">Total Latency: {pipelineResult.total_latency_ms} ms</span>
+              )}
+            </div>
+
+            {pipelineResult ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                  <div className="p-2 bg-white border border-slate-200 rounded">
+                    <span className="text-slate-400 block text-[9px]">TOOL DETECT (M1)</span>
+                    <span className="font-bold text-slate-900">{pipelineResult.stages.model_1_tool_detection.class_name}</span>
+                    <span className="text-[10px] text-slate-500 block">{pipelineResult.stages.model_1_tool_detection.latency_ms} ms</span>
+                  </div>
+
+                  <div className="p-2 bg-white border border-slate-200 rounded">
+                    <span className="text-slate-400 block text-[9px]">WEAR ANALYSIS (M2)</span>
+                    <span className="font-bold text-slate-900">
+                      {pipelineResult.stages.model_2_wear_analysis.wear_um !== null ? `${pipelineResult.stages.model_2_wear_analysis.wear_um} µm` : 'SKIPPED'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block">{pipelineResult.stages.model_2_wear_analysis.latency_ms} ms</span>
+                  </div>
+
+                  <div className="p-2 bg-white border border-slate-200 rounded">
+                    <span className="text-slate-400 block text-[9px]">HEALTH PREDICT (M3)</span>
+                    <span className="font-bold text-slate-900">
+                      {pipelineResult.stages.model_3_health_prediction.health_score !== null ? `${Math.round(pipelineResult.stages.model_3_health_prediction.health_score * 100)}%` : 'SKIPPED'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block">{pipelineResult.stages.model_3_health_prediction.latency_ms} ms</span>
+                  </div>
+
+                  <div className="p-2 bg-white border border-slate-200 rounded">
+                    <span className="text-slate-400 block text-[9px]">RUL PREDICTION (M6)</span>
+                    <span className="font-bold text-emerald-600">
+                      {pipelineResult.stages.model_6_rul_prediction.rul_cycles !== null ? `${pipelineResult.stages.model_6_rul_prediction.rul_cycles} cyc` : 'SKIPPED'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block">{pipelineResult.stages.model_6_rul_prediction.latency_ms} ms</span>
+                  </div>
+                </div>
+
+                <div className="p-2 bg-white border border-slate-200 rounded text-[11px] flex justify-between">
+                  <span>Domain Eligibility Status:</span>
+                  <span className="font-bold text-slate-900">{pipelineResult.tool_eligibility}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-8 text-center text-slate-400 text-xs">
+                Click "Run Full Pipeline Test" to benchmark synchronous latency and tensor flow across all models.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Model 6 RUL Development Debug & Calibration Panel */}
@@ -418,3 +556,5 @@ export const Models: React.FC = () => {
     </div>
   );
 };
+
+export default Models;

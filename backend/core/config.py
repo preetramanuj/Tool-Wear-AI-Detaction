@@ -28,11 +28,13 @@ class Settings(BaseSettings):
         str(BASE_DIR / "models" / "yolo11n.pt"),
     ]
     
-    # Model 2: Wear Analysis Weights
+    # Model 2: Wear Analysis Weights (NEW Phase3B Multimodal Gated Model)
     WEAR_ANALYSIS_MODEL_PATHS: List[str] = [
+        str(BASE_DIR / "ai" / "wear_analysis" / "artifacts" / "final" / "wear_analysis_multimodal_final.pth"),
         str(BASE_DIR / "models" / "wear_analysis" / "final_optimized_384px.pth"),
-        str(BASE_DIR / "result" / "wear_analysis" / "checkpoints" / "final_optimized_384px.pth"),
     ]
+    WEAR_SCALER_PATH: str = str(BASE_DIR / "ai" / "wear_analysis" / "artifacts" / "final" / "target_scaler.pkl")
+    WEAR_METADATA_PATH: str = str(BASE_DIR / "ai" / "wear_analysis" / "artifacts" / "final" / "final_model_metadata.json")
     WEAR_CONFIG_PATH: str = str(BASE_DIR / "config" / "wear_analysis.json")
     WEAR_CALIBRATION_PATH: str = str(BASE_DIR / "ai" / "wear_analysis" / "calibration" / "output_calibration.json")
     WEAR_IMAGE_SIZE: int = 384
@@ -75,8 +77,8 @@ class Settings(BaseSettings):
     REPORTS_DIR: str = str(BASE_DIR / "storage" / "reports")
     PREDICTIONS_DIR: str = str(BASE_DIR / "result" / "predictions")
     
-    # Database Configuration (SQLite)
-    DATABASE_URL: str = f"sqlite:///{BASE_DIR / 'storage' / 'toolguard.db'}"
+    # Database Configuration (SQLite: backend/data/toolguard.db)
+    DATABASE_URL: str = f"sqlite:///{BASE_DIR / 'backend' / 'data' / 'toolguard.db'}"
     
     # Device Configuration ('auto', 'cuda', 'mps', or 'cpu')
     DEVICE: str = "auto"
