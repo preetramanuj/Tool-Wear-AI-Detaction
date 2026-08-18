@@ -42,6 +42,19 @@ export interface HealthPredictionResult {
   error?: string;
 }
 
+export interface RULPredictionResult {
+  available: boolean;
+  rul_value: number | null;
+  unit: string;
+  wear_rate_um_per_cycle?: number | null;
+  current_wear_um?: number | null;
+  eol_threshold_um?: number;
+  rul_status?: string;
+  health_status?: 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'UNKNOWN';
+  model?: string;
+  error?: string;
+}
+
 export interface PersonItem {
   bbox: [number, number, number, number];
   confidence: number;
@@ -86,6 +99,7 @@ export interface InspectionResult {
   tool_detection: ToolDetectionResult;
   wear_analysis: WearAnalysisResult;
   health_prediction: HealthPredictionResult;
+  rul_prediction?: RULPredictionResult;
   faces?: any;
   associations?: PersonToolAssociation[];
   images: {
@@ -122,6 +136,7 @@ export interface WebcamFrameResult {
   associations: PersonToolAssociation[];
   wear: WearAnalysisResult;
   health: HealthPredictionResult;
+  rul?: RULPredictionResult;
   ppe: PPEStatus;
   latency_ms: number;
   fps_estimate: number;
@@ -140,6 +155,8 @@ export interface Tool {
   status: 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'RETIRED';
   current_wear_um: number;
   current_wear_vb_mm: number;
+  current_rul_cycles?: number | null;
+  current_wear_rate?: number | null;
   total_inspections: number;
   created_at: string;
   updated_at: string;
@@ -248,6 +265,9 @@ export interface AnalyticsOverview {
     latest_wear_area_mm2: number;
     latest_health_status: string;
     predicted_rul: string;
+    latest_rul_cycles?: number | null;
+    latest_rul_unit?: string;
+    avg_rul_cycles?: number | null;
     avg_wear_um: number;
     avg_wear_vb_mm: number;
   };
@@ -262,5 +282,19 @@ export interface WearTrendPoint {
   wear_vb_mm: number;
   wear_area: number;
   health_score: number;
+  rul_cycles?: number | null;
+  wear_rate?: number | null;
   status: string;
+}
+
+export interface RULSchemaResponse {
+  success: boolean;
+  feature_count: number;
+  features: string[];
+  categorical_features: string[];
+  numerical_features: string[];
+  category_mapping: Record<string, string[]>;
+  target: string;
+  target_unit: string;
+  eol_threshold_um: number;
 }

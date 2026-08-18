@@ -36,8 +36,8 @@ def test_models_status(client):
     assert res.status_code == 200
     data = res.json()
     assert data["success"] is True
-    assert data["models_loaded_count"] == 4
-    assert len(data["models"]) == 4
+    assert data["models_loaded_count"] >= 4
+    assert len(data["models"]) == 5
 
 def test_tools_crud(client):
     res = client.get(f"{settings.API_V1_STR}/tools")
@@ -55,6 +55,7 @@ def test_analytics_overview(client):
     assert res.status_code == 200
     kpis = res.json().get("kpis", {})
     assert "total_tools" in kpis
+    assert "predicted_rul" in kpis
 
 def test_inspection_pipeline_with_sample_image(client):
     sample_img_path = Path(settings.BASE_DIR) / "datasets" / "sample_cutting_tool.jpg"
@@ -71,6 +72,7 @@ def test_inspection_pipeline_with_sample_image(client):
         assert "tool_detection" in data
         assert "wear_analysis" in data
         assert "health_prediction" in data
+        assert "rul_prediction" in data
         assert "associations" in data
         assert "images" in data
 

@@ -53,10 +53,20 @@ class Settings(BaseSettings):
     FACE_REGISTERED_DIR: str = str(BASE_DIR / "storage" / "face" / "registered")
     FACE_VERIFY_INPUT_DIR: str = str(BASE_DIR / "storage" / "face" / "verification")
     
+    # Model 6: Remaining Useful Life (RUL) Prediction (XGBoost)
+    RUL_MODEL_PATHS: List[str] = [
+        str(BASE_DIR / "models" / "rul" / "final" / "xgb_rul_final.pkl"),
+    ]
+    RUL_FEATURE_SCHEMA_PATH: str = str(BASE_DIR / "models" / "rul" / "final" / "feature_schema.json")
+    RUL_METADATA_PATH: str = str(BASE_DIR / "models" / "rul" / "final" / "xgb_rul_final_metadata.json")
+    RUL_EOL_THRESHOLD_UM: float = 300.0
+    RUL_WARNING_THRESHOLD_CYCLES: float = 50.0
+    RUL_CRITICAL_THRESHOLD_CYCLES: float = 15.0
+
     # Person-Tool Association Parameters
     ASSOCIATION_HOLDING_DISTANCE_RATIO: float = 0.35  # Relative to person height
     ASSOCIATION_NEAR_DISTANCE_RATIO: float = 0.80     # Relative to person height
-    
+
     # Storage and Artifacts
     STORAGE_DIR: str = str(BASE_DIR / "storage")
     DATA_DIR: str = str(BASE_DIR / "backend" / "data")

@@ -10,13 +10,14 @@ from backend.services.tool_detection_service import tool_detection_service
 from backend.services.wear_analysis_service import wear_analysis_service
 from backend.services.health_prediction_service import health_prediction_service
 from backend.services.face_detection_service import face_detection_service
+from backend.services.rul_service import rul_service
 
 router = APIRouter(prefix="/models", tags=["AI Models Management & Diagnostics"])
 
 @router.get("/status")
 async def get_all_models_status():
     """
-    Retrieve live technical operational status, framework, device, and weights for all 4 models.
+    Retrieve live technical operational status, framework, device, and weights for all AI models.
     """
     try:
         device_name = "CUDA (NVIDIA GPU)" if torch.cuda.is_available() else "CPU (Host Engine)"
@@ -41,10 +42,10 @@ async def get_all_models_status():
                 "framework": "PyTorch (Late-Fusion EfficientNet-B0 + Sensor MLP)",
                 "weights_path": wear_analysis_service.model_path,
                 "weights_file": os.path.basename(wear_analysis_service.model_path),
-                "loaded": True,
+                "loaded": wear_analysis_service.is_loaded(),
                 "device": str(wear_analysis_service.device),
                 "resolution": [settings.WEAR_IMAGE_SIZE, settings.WEAR_IMAGE_SIZE],
-                "status": "ONLINE",
+                "status": "ONLINE" if wear_analysis_service.is_loaded() else "OFFLINE",
             },
             {
                 "id": "model-3",
@@ -53,18 +54,30 @@ async def get_all_models_status():
                 "framework": "PyTorch (EfficientNet-B0 + Target Scaler)",
                 "weights_path": health_prediction_service.model_path,
                 "weights_file": os.path.basename(health_prediction_service.model_path),
-                "loaded": True,
+                "loaded": health_prediction_service.is_loaded(),
                 "device": str(health_prediction_service.device),
                 "resolution": [settings.WEAR_IMAGE_SIZE, settings.WEAR_IMAGE_SIZE],
-                "status": "ONLINE",
+                "status": "ONLINE" if health_prediction_service.is_loaded() else "OFFLINE",
+            },
+            {
+                "id": "model-6",
+                "name": "Model 6: Remaining Useful Life (RUL)",
+                "task": "Wear Degradation Rate (µm/cycle) & Remaining Cycles to EOL (300 µm)",
+                "framework": "XGBoost (XGBRegressor + Physics Transform)",
+                "weights_path": rul_service.model_path,
+                "weights_file": os.path.basename(rul_service.model_path),
+                "loaded": rul_service.is_loaded(),
+                "device": "CPU / GPU",
+                "resolution": [89, 1],
+                "status": "ONLINE" if rul_service.is_loaded() else "OFFLINE",
             },
             {
                 "id": "model-4",
                 "name": "Model 4: Operator Face Detection & Authentication",
                 "task": "Machine Vision Authorization & Workshop Personnel Telemetry",
                 "framework": "OpenCV / YOLO Vision Engine",
-                "weights_path": "Local Template Registry",
-                "weights_file": "YOLO + OpenCV Skin Geometry Engine",
+                "weights_path": "storage/face/registered",
+                "weights_file": "YOLO + Template Vision Engine",
                 "loaded": face_detection_service.is_loaded(),
                 "device": "CPU",
                 "resolution": [640, 480],
@@ -89,7 +102,7 @@ async def get_all_models_status():
 @router.post("/diagnostics")
 async def run_models_diagnostics():
     """
-    Executes an in-memory forward-pass test on all 4 AI model services with synthetic input tensors.
+    Executes an in-memory forward-pass test on all AI model services with synthetic input tensors.
     """
     diagnostics = {}
     
@@ -136,7 +149,23 @@ async def run_models_diagnostics():
     except Exception as e:
         diagnostics["model_3_health_prediction"] = {"status": "ERROR", "error": str(e)}
 
-    # 4. Test Model 4 Face Detection
+    # 4. Test Model 6 RUL Prediction
+    try:
+        t0 = time.time()
+        dummy_features = {"wear": 50.0, "cycle_index": 1.0, "material": "CK45"}
+        res6 = rul_service.predict_rul(dummy_features)
+        lat6 = round((time.time() - t0) * 1000.0, 1)
+        diagnostics["model_6_rul_prediction"] = {
+            "status": "OK",
+            "latency_ms": lat6,
+            "rul_cycles": res6.get("rul_value"),
+            "unit": res6.get("unit"),
+            "rul_status": res6.get("rul_status")
+        }
+    except Exception as e:
+        diagnostics["model_6_rul_prediction"] = {"status": "ERROR", "error": str(e)}
+
+    # 5. Test Model 4 Face Detection
     try:
         t0 = time.time()
         dummy_face = np.zeros((400, 400, 3), dtype=np.uint8)

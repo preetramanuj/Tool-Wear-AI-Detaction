@@ -245,7 +245,7 @@ export const Inspections: React.FC = () => {
             </div>
 
             {/* Metric Assessment Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
                 <div className="text-[10px] font-mono text-slate-500 font-semibold">FLANK WEAR (VB)</div>
                 <div className="text-xl font-bold font-mono text-sky-600 mt-1">
@@ -261,8 +261,17 @@ export const Inspections: React.FC = () => {
               </div>
 
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                <div className="text-[10px] font-mono text-slate-500 font-semibold">HEALTH SCORE</div>
+                <div className="text-[10px] font-mono text-slate-500 font-semibold">RUL (CYCLES)</div>
                 <div className="text-xl font-bold font-mono text-emerald-600 mt-1">
+                  {currentResult.rul_prediction?.rul_value !== undefined && currentResult.rul_prediction?.rul_value !== null
+                    ? `${currentResult.rul_prediction.rul_value} cycles`
+                    : (currentResult.rul_prediction?.rul_status || 'Pending')}
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                <div className="text-[10px] font-mono text-slate-500 font-semibold">HEALTH SCORE</div>
+                <div className="text-xl font-bold font-mono text-slate-800 mt-1">
                   {((currentResult.health_prediction.health_score || 0) * 100).toFixed(0)}%
                 </div>
               </div>
@@ -286,12 +295,15 @@ export const Inspections: React.FC = () => {
             </div>
 
             {/* Action Bar */}
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono flex items-center justify-between">
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <span className="text-slate-500 font-semibold">Recommended Action: </span>
                 <span className="text-sky-700 font-bold">{currentResult.health_prediction.recommended_action || 'None'}</span>
               </div>
-              <span className="text-emerald-700 font-semibold">✓ Automatically saved to SQLite Database</span>
+              <div className="text-emerald-700 font-semibold flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>RUL Rate: {currentResult.rul_prediction?.wear_rate_um_per_cycle ? `${currentResult.rul_prediction.wear_rate_um_per_cycle} µm/cycle` : 'Calibrated'} | Saved to SQLite</span>
+              </div>
             </div>
           </div>
         )}
@@ -317,6 +329,7 @@ export const Inspections: React.FC = () => {
                   <th className="px-3 py-2.5 font-semibold">Timestamp</th>
                   <th className="px-3 py-2.5 font-semibold">Wear (VB)</th>
                   <th className="px-3 py-2.5 font-semibold">Wear (µm)</th>
+                  <th className="px-3 py-2.5 font-semibold">RUL (Cycles)</th>
                   <th className="px-3 py-2.5 font-semibold">Health Status</th>
                   <th className="px-3 py-2.5 font-semibold">Action</th>
                 </tr>
@@ -332,6 +345,11 @@ export const Inspections: React.FC = () => {
                     </td>
                     <td className="px-3 py-2.5 text-slate-700">
                       {item.health_prediction?.wear_um ? `${item.health_prediction.wear_um.toFixed(1)} µm` : '-'}
+                    </td>
+                    <td className="px-3 py-2.5 font-bold text-emerald-700">
+                      {item.rul_prediction?.rul_value !== undefined && item.rul_prediction?.rul_value !== null
+                        ? `${item.rul_prediction.rul_value} cycles`
+                        : (item.rul_prediction?.rul_status || '-')}
                     </td>
                     <td className="px-3 py-2.5">
                       <span

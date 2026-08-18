@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Wrench,
   Zap,
+  Timer,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -45,7 +46,7 @@ export const Dashboard: React.FC = () => {
         getAlerts(false),
       ]);
       setOverview(ov);
-      setTrendData(trend);
+      setTrendData(trend || []);
       setRecentInspections(insp.inspections || []);
       setActiveAlerts(alts || []);
     } catch (err) {
@@ -63,7 +64,7 @@ export const Dashboard: React.FC = () => {
 
   const kpis = overview?.kpis;
 
-  // Chart data configuration for White Theme
+  // Chart data configuration for White Theme with RUL and Wear
   const chartData = {
     labels: trendData.length > 0 ? trendData.map((d) => d.timestamp) : ['No Data'],
     datasets: [
@@ -76,15 +77,18 @@ export const Dashboard: React.FC = () => {
         tension: 0.3,
         pointRadius: 4,
         pointBackgroundColor: '#0284C7',
+        yAxisID: 'y',
       },
       {
-        label: 'Wear (µm / 1000)',
-        data: trendData.length > 0 ? trendData.map((d) => d.wear_um / 1000.0) : [0],
+        label: 'RUL (Cycles Remaining)',
+        data: trendData.length > 0 ? trendData.map((d) => d.rul_cycles ?? null) : [0],
         borderColor: '#10B981',
         borderDash: [5, 5],
         fill: false,
         tension: 0.3,
-        pointRadius: 3,
+        pointRadius: 4,
+        pointBackgroundColor: '#10B981',
+        yAxisID: 'y1',
       },
     ],
   };
@@ -113,8 +117,20 @@ export const Dashboard: React.FC = () => {
         ticks: { color: '#64748B', font: { family: 'JetBrains Mono', size: 10 } },
       },
       y: {
+        type: 'linear' as const,
+        display: true,
+        position: 'left' as const,
+        title: { display: true, text: 'Wear VB (mm)', font: { size: 10 } },
         grid: { color: 'rgba(226, 232, 240, 0.8)' },
         ticks: { color: '#64748B', font: { family: 'JetBrains Mono', size: 10 } },
+      },
+      y1: {
+        type: 'linear' as const,
+        display: true,
+        position: 'right' as const,
+        title: { display: true, text: 'RUL (Cycles)', font: { size: 10 } },
+        grid: { drawOnChartArea: false },
+        ticks: { color: '#10B981', font: { family: 'JetBrains Mono', size: 10 } },
       },
     },
   };
@@ -129,7 +145,7 @@ export const Dashboard: React.FC = () => {
             Predictive Maintenance Control Dashboard
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Real-Time AI Tool Wear Assessment, Flank Degradation Monitoring & Health Diagnostics
+            Real-Time AI Tool Wear Assessment, Flank Degradation Monitoring & Remaining Useful Life (RUL)
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -199,17 +215,28 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI 4: Predicted RUL */}
+        {/* KPI 4: Predicted RUL (Model 6 XGBoost) */}
         <div className="bg-white border border-slate-200 p-4 rounded-lg shadow-xs relative overflow-hidden">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold">PREDICTED RUL</div>
-          <div className="mt-2">
-            <span className="text-xs font-semibold font-mono text-slate-700 bg-slate-100 px-2.5 py-1 rounded border border-slate-200 inline-block">
-              RUL model not connected
-            </span>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold">PREDICTED RUL (MODEL 6)</div>
+          <div className="mt-2 flex items-baseline gap-2">
+            {kpis && kpis.latest_rul_cycles !== null && kpis.latest_rul_cycles !== undefined ? (
+              <>
+                <span className="text-2xl font-bold font-mono text-emerald-600">
+                  {kpis.latest_rul_cycles}
+                </span>
+                <span className="text-xs font-mono text-slate-500">cycles remaining</span>
+              </>
+            ) : (
+              <span className="text-xs font-semibold font-mono text-slate-700 bg-slate-100 px-2.5 py-1 rounded border border-slate-200 inline-block">
+                {kpis?.predicted_rul || 'Not Available'}
+              </span>
+            )}
           </div>
-          <div className="text-[11px] text-slate-400 mt-2 font-medium">Temporal estimation pending</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">
+            EOL Target: 300 µm limit
+          </div>
           <div className="absolute right-3 top-3 opacity-10 text-slate-900">
-            <Activity className="w-12 h-12" />
+            <Timer className="w-12 h-12" />
           </div>
         </div>
 
@@ -233,15 +260,15 @@ export const Dashboard: React.FC = () => {
 
       {/* Main Grid: Chart & System Status */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Wear Degradation Trend */}
+        {/* Left 2 Cols: Wear Degradation & RUL Trajectory */}
         <div className="lg:col-span-2 bg-white border border-slate-200 rounded-lg p-5 flex flex-col shadow-xs">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
             <div>
               <h2 className="text-sm font-bold font-mono uppercase text-slate-900 flex items-center gap-2">
                 <Activity className="w-4 h-4 text-sky-600" />
-                Flank Wear (VB) Progression Curve
+                Tool Wear (VB) & Remaining Useful Life (RUL) Trajectory
               </h2>
-              <span className="text-[11px] text-slate-500">Measured degradation points across inspection runs</span>
+              <span className="text-[11px] text-slate-500">Dual-axis progression curve across machining runs</span>
             </div>
             <Link to="/analytics" className="text-xs font-mono text-sky-600 font-semibold hover:underline flex items-center gap-1">
               View Analytics <ArrowUpRight className="w-3.5 h-3.5" />
@@ -270,50 +297,60 @@ export const Dashboard: React.FC = () => {
               <Cpu className="w-4 h-4 text-sky-600" />
               AI Pipeline Architecture
             </h2>
-            <div className="space-y-3">
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div className="space-y-2.5">
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
                   <div className="text-xs font-mono font-semibold text-slate-900">Model 1: Tool Detection</div>
                   <div className="text-[10px] text-slate-500 font-mono">Ultralytics YOLO11n (640x640)</div>
                 </div>
-                <span className="px-2.5 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
                   ONLINE
                 </span>
               </div>
 
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
                   <div className="text-xs font-mono font-semibold text-slate-900">Model 2: Wear Analysis</div>
                   <div className="text-[10px] text-slate-500 font-mono">LateFusion EfficientNet-B0 (384px)</div>
                 </div>
-                <span className="px-2.5 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
                   ONLINE
                 </span>
               </div>
 
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
                   <div className="text-xs font-mono font-semibold text-slate-900">Model 3: Health Prediction</div>
                   <div className="text-[10px] text-slate-500 font-mono">ImageOnly Regression + Scaler</div>
                 </div>
-                <span className="px-2.5 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
                   ONLINE
                 </span>
               </div>
 
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-mono font-semibold text-slate-900">Model 6: Remaining Useful Life</div>
+                  <div className="text-[10px] text-slate-500 font-mono">XGBoost (89 features &rarr; cycles)</div>
+                </div>
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
+                  ONLINE
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
                   <div className="text-xs font-mono font-semibold text-slate-900">Model 4: Operator Auth</div>
                   <div className="text-[10px] text-slate-500 font-mono">YOLO + Template Vision Engine</div>
                 </div>
-                <span className="px-2.5 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
                   ONLINE
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-200">
+          <div className="mt-3 pt-3 border-t border-slate-200">
             <Link
               to="/models"
               className="w-full block text-center py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-mono font-semibold text-sky-700 transition"
@@ -346,8 +383,8 @@ export const Dashboard: React.FC = () => {
                   <th className="px-3 py-2.5 font-semibold">Detection</th>
                   <th className="px-3 py-2.5 font-semibold">Wear (VB)</th>
                   <th className="px-3 py-2.5 font-semibold">Wear (µm)</th>
+                  <th className="px-3 py-2.5 font-semibold">RUL (Cycles)</th>
                   <th className="px-3 py-2.5 font-semibold">Health State</th>
-                  <th className="px-3 py-2.5 font-semibold">Latency</th>
                   <th className="px-3 py-2.5 font-semibold">Action</th>
                 </tr>
               </thead>
@@ -371,6 +408,11 @@ export const Dashboard: React.FC = () => {
                     <td className="px-3 py-2.5 text-slate-700">
                       {insp.health_prediction?.wear_um ? `${insp.health_prediction.wear_um.toFixed(1)} µm` : '-'}
                     </td>
+                    <td className="px-3 py-2.5 font-bold text-emerald-700">
+                      {insp.rul_prediction?.rul_value !== undefined && insp.rul_prediction?.rul_value !== null
+                        ? `${insp.rul_prediction.rul_value} cycles`
+                        : (insp.rul_prediction?.rul_status || '-')}
+                    </td>
                     <td className="px-3 py-2.5">
                       <span
                         className={`px-2 py-0.5 text-[10px] rounded font-bold ${
@@ -383,9 +425,6 @@ export const Dashboard: React.FC = () => {
                       >
                         {insp.health_prediction?.health_status || 'UNKNOWN'}
                       </span>
-                    </td>
-                    <td className="px-3 py-2.5 text-slate-500">
-                      {insp.performance?.latency_ms ? `${insp.performance.latency_ms.toFixed(0)} ms` : '-'}
                     </td>
                     <td className="px-3 py-2.5 text-slate-600 truncate max-w-xs">
                       {insp.health_prediction?.recommended_action || 'None'}

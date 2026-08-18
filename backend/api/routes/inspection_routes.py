@@ -99,6 +99,14 @@ async def list_inspection_records(
                 "health_status": r.health_status,
                 "recommended_action": r.recommended_action,
             },
+            "rul_prediction": {
+                "available": r.rul_cycles is not None,
+                "rul_value": r.rul_cycles,
+                "wear_rate_um_per_cycle": r.rul_wear_rate,
+                "rul_status": r.rul_status,
+                "unit": r.rul_unit or "cycles",
+                "model": r.rul_model or "xgb_rul_final",
+            },
             "images": {
                 "original": r.original_image,
                 "annotated": r.annotated_image,
@@ -149,6 +157,14 @@ async def get_inspection_detail(
                 "health_score": r.health_score,
                 "health_status": r.health_status,
                 "recommended_action": r.recommended_action,
+            },
+            "rul_prediction": {
+                "available": r.rul_cycles is not None,
+                "rul_value": r.rul_cycles,
+                "wear_rate_um_per_cycle": r.rul_wear_rate,
+                "rul_status": r.rul_status,
+                "unit": r.rul_unit or "cycles",
+                "model": r.rul_model or "xgb_rul_final",
             },
             "images": {
                 "original": r.original_image,

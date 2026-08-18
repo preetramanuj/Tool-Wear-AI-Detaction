@@ -7,6 +7,33 @@ def init_db():
     """Create all SQLite tables and seed default machines, tools and operators."""
     Base.metadata.create_all(bind=engine)
     
+    # Auto-migrate SQLite columns if table was created in an earlier session
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        # Check tools table columns
+        try:
+            conn.execute(text("ALTER TABLE tools ADD COLUMN current_rul_cycles FLOAT"))
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE tools ADD COLUMN current_wear_rate FLOAT"))
+        except Exception:
+            pass
+
+        # Check inspections table columns
+        for col_name, col_type in [
+            ("rul_cycles", "FLOAT"),
+            ("rul_wear_rate", "FLOAT"),
+            ("rul_status", "VARCHAR(50)"),
+            ("rul_unit", "VARCHAR(20)"),
+            ("rul_model", "VARCHAR(50)"),
+        ]:
+            try:
+                conn.execute(text(f"ALTER TABLE inspections ADD COLUMN {col_name} {col_type}"))
+            except Exception:
+                pass
+        conn.commit()
+    
     with Session(engine) as session:
         # Seed default machines
         if not session.query(Machine).first():
@@ -96,12 +123,24 @@ def update_tool(db: Session, tool_id: str, tool_data: dict):
         db.refresh(tool)
     return tool
 
-def update_tool_wear(db: Session, tool_id: str, wear_um: float, wear_vb_mm: float, status: str):
+def update_tool_wear(
+    db: Session,
+    tool_id: str,
+    wear_um: float,
+    wear_vb_mm: float,
+    status: str,
+    rul_cycles: Optional[float] = None,
+    wear_rate: Optional[float] = None
+):
     tool = get_tool_by_id(db, tool_id)
     if tool:
         tool.current_wear_um = wear_um
         tool.current_wear_vb_mm = wear_vb_mm
         tool.status = status
+        if rul_cycles is not None:
+            tool.current_rul_cycles = rul_cycles
+        if wear_rate is not None:
+            tool.current_wear_rate = wear_rate
         tool.total_inspections += 1
         tool.updated_at = datetime.datetime.utcnow()
         db.commit()

@@ -127,6 +127,48 @@ export const runModelsDiagnostics = async (): Promise<any> => {
   return response.data;
 };
 
+// --- Model 6 RUL API ---
+export const predictRUL = async (payload: {
+  tool_id?: string;
+  current_wear_um?: number;
+  wear?: number;
+  cycle_index?: number;
+  material?: string;
+  Coating?: string;
+  machining_parameters?: Record<string, number>;
+  sensor_features?: number[];
+  features?: Record<string, any>;
+}): Promise<{
+  success: boolean;
+  rul: {
+    value: number | null;
+    unit: string;
+    wear_rate_um_per_cycle?: number;
+    current_wear_um?: number;
+    eol_threshold_um?: number;
+    rul_status?: string;
+    health_status?: string;
+  };
+  model: {
+    name: string;
+    type: string;
+    latency_ms: number;
+  };
+}> => {
+  const response = await apiClient.post('/rul/predict', payload);
+  return response.data;
+};
+
+export const getRULSchema = async (): Promise<any> => {
+  const response = await apiClient.get('/rul/schema');
+  return response.data;
+};
+
+export const getRULStatus = async (): Promise<any> => {
+  const response = await apiClient.get('/rul/status');
+  return response.data;
+};
+
 // --- Face Detection API ---
 export const detectOperatorFace = async (file: File): Promise<FaceDetectionResponse> => {
   const formData = new FormData();

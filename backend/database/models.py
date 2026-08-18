@@ -17,6 +17,8 @@ class Tool(Base):
     status = Column(String(20), default="HEALTHY")  # HEALTHY, WARNING, CRITICAL, RETIRED
     current_wear_um = Column(Float, default=0.0)
     current_wear_vb_mm = Column(Float, default=0.0)
+    current_rul_cycles = Column(Float, nullable=True)
+    current_wear_rate = Column(Float, nullable=True)
     total_inspections = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
@@ -49,6 +51,13 @@ class InspectionRecord(Base):
     health_score = Column(Float, default=0.0) # 0.0 to 1.0
     health_status = Column(String(20), default="UNKNOWN") # HEALTHY, WARNING, CRITICAL
     recommended_action = Column(String(200), default="None")
+    
+    # Model 6 RUL Prediction (XGBoost)
+    rul_cycles = Column(Float, nullable=True)      # Remaining useful life in cycles
+    rul_wear_rate = Column(Float, nullable=True)   # Predicted wear rate in um/cycle
+    rul_status = Column(String(50), default="UNAVAILABLE") # VALID, EOL_REACHED, UNAVAILABLE
+    rul_unit = Column(String(20), default="cycles")
+    rul_model = Column(String(50), default="xgb_rul_final")
     
     # Image references
     original_image = Column(String(255))

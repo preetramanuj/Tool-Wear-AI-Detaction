@@ -1,33 +1,45 @@
 import os
 import cv2
-import time
-import uuid
-import datetime
 import numpy as np
+import time
+import datetime
+import logging
+from typing import Dict, Any, Optional, List
 from pathlib import Path
-from typing import Dict, Any, Optional
-from sqlalchemy.orm import Session
 
 from backend.core.config import settings
 from backend.core.database import SessionLocal
-from backend.database.crud import create_inspection_record, create_alert, update_tool_wear, get_tool_by_id, create_tool_person_event
+from backend.database.crud import (
+    create_inspection_record,
+    update_tool_wear,
+    get_tool_by_id,
+    create_tool_person_event,
+    create_alert,
+)
 from backend.services.tool_detection_service import tool_detection_service
 from backend.services.wear_analysis_service import wear_analysis_service
 from backend.services.health_prediction_service import health_prediction_service
 from backend.services.face_detection_service import face_detection_service
 from backend.services.person_tool_association_service import person_tool_association_service
+from backend.services.rul_service import rul_service
+
+logger = logging.getLogger(__name__)
 
 class InspectionPipelineService:
     """
-    Unified Multi-Stage End-to-End AI Inspection Pipeline:
-    1. Tool Detection & Localization (YOLO11n)
-    2. Tool Metadata Verification (SQLite Tool Registry)
-    3. Tool ROI Crop Extraction
-    4. Flank Wear Analysis (LateFusionWearModel + Linear Calibration)
-    5. Tool Health Diagnostics (ImageOnlyWearModel + TargetScaler)
-    6. Face Detection & Operator Identity Verification
-    7. Person + Tool Spatial Association
-    8. Storage Persistence & SQLite Audit Logging
+    Unified Industrial Inspection Pipeline:
+    Connects:
+      Model 1: Tool Detection (YOLO11n - 640x640)
+        ↓
+      Model 2: Wear Analysis (LateFusion EfficientNet-B0 - 384x384)
+        ↓
+      Model 3: Health Prediction (ImageOnly - 384x384 + Scaler)
+        ↓
+      Model 6: Remaining Useful Life (XGBoost - 89 features -> cycles)
+        ↓
+      Model 4 & Spatial: Face Auth & Person-Tool Interaction Engine
+        ↓
+      Persistence: SQLite Database & Image Storage
     """
 
     def __init__(self):
@@ -39,44 +51,42 @@ class InspectionPipelineService:
     def run_pipeline(
         self,
         image_bytes: bytes,
-        filename: str = "inspection.jpg",
-        tool_id: Optional[str] = "TL-CNMG-120408",
-        machine_id: str = "CNC-01",
-        operator_id: str = "OP-DEFAULT",
-        sensor_features: Optional[list] = None,
+        filename: str,
+        tool_id: Optional[str] = None,
+        machine_id: Optional[str] = "CNC-01",
+        operator_id: Optional[str] = "OP-DEFAULT",
+        sensor_features: Optional[List[float]] = None,
     ) -> Dict[str, Any]:
+        """
+        Executes end-to-end multi-model inference pipeline.
+        """
         start_time = time.time()
-        inspection_id = f"INSP-{int(time.time())}-{uuid.uuid4().hex[:6].upper()}"
+        inspection_id = f"INSP-{int(time.time() * 1000) % 10000000:07d}"
         stages_completed = []
 
-        # 1. Decode Image
-        nparr = np.frombuffer(image_bytes, np.uint8)
-        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        # 1. Decode Image from Bytes
+        np_arr = np.frombuffer(image_bytes, np.uint8)
+        image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         if image is None:
-            return {
-                "success": False,
-                "inspection_id": inspection_id,
-                "error": "Failed to decode input image bytes into valid visual matrix.",
-            }
-        stages_completed.append("IMAGE_DECODED")
+            raise ValueError("Failed to decode uploaded image data.")
 
-        # 2. Tool Metadata Lookup from Database
+        # 2. Lookup Tool Metadata in Database
         tool_name = "Cutting Tool"
         tool_type = "Tool type unavailable"
-        with SessionLocal() as db:
-            if tool_id:
-                db_tool = get_tool_by_id(db, tool_id)
-                if db_tool:
-                    tool_name = db_tool.tool_name
-                    tool_type = f"{db_tool.tool_type} ({db_tool.insert_shape})"
+        if tool_id:
+            with SessionLocal() as db:
+                tool_record = get_tool_by_id(db, tool_id)
+                if tool_record:
+                    tool_name = tool_record.tool_name
+                    tool_type = tool_record.tool_type
 
-        # 3. Stage 1: Tool Detection
+        # 3. Stage 1: Tool Detection (YOLO11)
         tool_det_res = tool_detection_service.detect(image)
         stages_completed.append("TOOL_DETECTION")
 
-        # 4. Stage 2 & 3: Wear & Health Analysis
         cropped_roi_bgr = tool_det_res.get("cropped_roi_bgr")
-        
+
+        # 4. Stage 2 & 3: Wear Analysis + Health Prediction
         if tool_det_res.get("detected", False) and cropped_roi_bgr is not None:
             # Stage 2: Flank Wear VB Regression
             wear_res = wear_analysis_service.predict(cropped_roi_bgr, sensor_features=sensor_features)
@@ -102,7 +112,30 @@ class InspectionPipelineService:
                 "recommended_action": "Ensure cutting tool is in camera field of view.",
             }
 
-        # 5. Stage 4: Face Verification & Person-Tool Association
+        # 5. Stage 3b: Model 6 RUL Prediction (XGBoost)
+        rul_res = {
+            "available": False,
+            "rul_value": None,
+            "unit": "cycles",
+            "wear_rate_um_per_cycle": None,
+            "rul_status": "UNAVAILABLE_NO_TOOL" if not tool_det_res.get("detected") else "UNAVAILABLE_MISSING_WEAR",
+            "health_status": "UNKNOWN"
+        }
+        if tool_det_res.get("detected", False) and health_res.get("wear_um") is not None:
+            try:
+                with SessionLocal() as db_ctx:
+                    rul_feature_vec = rul_service.build_feature_vector_from_context(
+                        tool_id=tool_id,
+                        current_wear_um=health_res.get("wear_um"),
+                        db=db_ctx,
+                        sensor_data=sensor_features
+                    )
+                    rul_res = rul_service.predict_rul(rul_feature_vec)
+                    stages_completed.append("RUL_PREDICTION")
+            except Exception as e:
+                logger.warning(f"Error computing Model 6 RUL in pipeline: {e}")
+
+        # 6. Stage 4: Face Verification & Person-Tool Association
         face_verify_res = face_detection_service.verify_operator(image)
         operator_name = face_verify_res.get("identity", operator_id)
 
@@ -117,7 +150,7 @@ class InspectionPipelineService:
         )
         stages_completed.append("PERSON_TOOL_ASSOCIATION")
 
-        # 6. Render HUD Overlay
+        # 7. Render HUD Overlay
         annotated_img = tool_detection_service.render_hud_overlay(
             image=image,
             detection_result=tool_det_res,
@@ -125,7 +158,7 @@ class InspectionPipelineService:
             health_status=health_res.get("health_status") if tool_det_res.get("detected") else None,
         )
 
-        # 7. Image Artifact Persistence
+        # 8. Image Artifact Persistence
         orig_filename = f"{inspection_id}_orig.jpg"
         annot_filename = f"{inspection_id}_annot.jpg"
         crop_filename = f"{inspection_id}_crop.jpg"
@@ -143,7 +176,7 @@ class InspectionPipelineService:
 
         latency_ms = round((time.time() - start_time) * 1000.0, 1)
 
-        # 8. Database Persistence (SQLite)
+        # 9. Database Persistence (SQLite)
         with SessionLocal() as db:
             insp_data = {
                 "inspection_id": inspection_id,
@@ -162,6 +195,11 @@ class InspectionPipelineService:
                 "health_score": health_res.get("health_score", 0.0),
                 "health_status": health_res.get("health_status", "UNKNOWN"),
                 "recommended_action": health_res.get("recommended_action", "None"),
+                "rul_cycles": rul_res.get("rul_value"),
+                "rul_wear_rate": rul_res.get("wear_rate_um_per_cycle"),
+                "rul_status": rul_res.get("rul_status", "UNAVAILABLE"),
+                "rul_unit": rul_res.get("unit", "cycles"),
+                "rul_model": "xgb_rul_final",
                 "original_image": f"/storage/uploaded_images/{orig_filename}",
                 "annotated_image": f"/storage/processed_images/{annot_filename}",
                 "cropped_roi": f"/storage/processed_images/{crop_filename}" if crop_path else None,
@@ -178,6 +216,8 @@ class InspectionPipelineService:
                     wear_um=health_res.get("wear_um", 0.0),
                     wear_vb_mm=wear_res.get("wear_value", 0.0),
                     status=health_res.get("health_status", "HEALTHY"),
+                    rul_cycles=rul_res.get("rul_value"),
+                    wear_rate=rul_res.get("wear_rate_um_per_cycle"),
                 )
 
             # Log Tool-Person Event if association detected
@@ -194,16 +234,17 @@ class InspectionPipelineService:
                 }
                 create_tool_person_event(db, event_data)
 
-            # Generate Alert on High Wear
-            if health_res.get("health_status") in ["WARNING", "CRITICAL"]:
+            # Generate Alert on High Wear or Critical RUL
+            if health_res.get("health_status") in ["WARNING", "CRITICAL"] or (rul_res.get("rul_value") is not None and rul_res.get("rul_value") <= settings.RUL_CRITICAL_THRESHOLD_CYCLES):
+                alert_sev = "CRITICAL" if (health_res.get("health_status") == "CRITICAL" or (rul_res.get("rul_value") is not None and rul_res.get("rul_value") <= settings.RUL_CRITICAL_THRESHOLD_CYCLES)) else "WARNING"
                 alert_data = {
                     "alert_id": f"ALT-{int(time.time()) % 100000}",
-                    "alert_type": "WEAR_THRESHOLD_EXCEEDED",
-                    "severity": health_res["health_status"],
+                    "alert_type": "WEAR_THRESHOLD_EXCEEDED" if health_res.get("health_status") in ["WARNING", "CRITICAL"] else "RUL_CRITICAL",
+                    "severity": alert_sev,
                     "tool_id": tool_id,
                     "machine_id": machine_id,
-                    "title": f"Tool Wear {health_res['health_status']}: {tool_id}",
-                    "message": f"Tool {tool_id} wear has reached {health_res.get('wear_um', 0.0):.1f} µm (VB: {wear_res.get('wear_value', 0.0):.3f} mm). Action: {health_res.get('recommended_action')}",
+                    "title": f"Tool Alert [{alert_sev}]: {tool_id}",
+                    "message": f"Tool {tool_id} wear is {health_res.get('wear_um', 0.0):.1f} µm (VB: {wear_res.get('wear_value', 0.0):.3f} mm). RUL: {rul_res.get('rul_value')} cycles remaining. Action: {health_res.get('recommended_action')}",
                 }
                 create_alert(db, alert_data)
 
@@ -218,14 +259,14 @@ class InspectionPipelineService:
             "timestamp": datetime.datetime.utcnow().isoformat(),
             "tool_detection": {
                 "detected": tool_det_res.get("detected", False),
-                "class": tool_det_res.get("class", "None"),
                 "confidence": tool_det_res.get("confidence", 0.0),
-                "confidence_percent": tool_det_res.get("confidence_percent", "0%"),
+                "confidence_percent": tool_det_res.get("confidence_percent", "0.0%"),
                 "bbox": tool_det_res.get("bbox", [0, 0, 0, 0]),
-                "num_tools_found": tool_det_res.get("num_tools_found", 0),
+                "area_pixels": tool_det_res.get("area_pixels", 0),
             },
             "wear_analysis": wear_res,
             "health_prediction": health_res,
+            "rul_prediction": rul_res,
             "faces": face_verify_res,
             "associations": associations,
             "images": {
