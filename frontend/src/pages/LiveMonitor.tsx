@@ -16,7 +16,7 @@ export const LiveMonitor: React.FC = () => {
   const [tools, setTools] = useState<Tool[]>([]);
   const [selectedToolId, setSelectedToolId] = useState<string>('TL-CNMG-120408');
 
-  // Camera stream state
+  // Camera State
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -26,6 +26,7 @@ export const LiveMonitor: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [capturedBlobUrl, setCapturedBlobUrl] = useState<string | null>(null);
   const [inspectionResult, setInspectionResult] = useState<InspectionResult | null>(null);
+  const [imageError, setImageError] = useState<boolean>(false);
 
   useEffect(() => {
     getTools().then(setTools).catch(() => null);
@@ -36,7 +37,6 @@ export const LiveMonitor: React.FC = () => {
     };
   }, []);
 
-  // Start Camera with user permission
   const startCamera = async () => {
     setCameraError(null);
     try {
@@ -55,12 +55,11 @@ export const LiveMonitor: React.FC = () => {
       setIsCameraActive(true);
     } catch (err: any) {
       console.error('Camera access error:', err);
-      setCameraError('Camera permission denied or camera device unavailable. Please allow camera access.');
+      setCameraError('Camera permission denied or device unavailable. Please allow camera access.');
       setIsCameraActive(false);
     }
   };
 
-  // Stop Camera
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
@@ -72,14 +71,13 @@ export const LiveMonitor: React.FC = () => {
     setIsCameraActive(false);
   };
 
-  // Capture Frame & Run AI Inspection
   const handleCaptureAndInspect = () => {
     if (!videoRef.current) return;
 
     const video = videoRef.current;
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -90,6 +88,7 @@ export const LiveMonitor: React.FC = () => {
         const blobUrl = URL.createObjectURL(blob);
         setCapturedBlobUrl(blobUrl);
         setIsProcessing(true);
+        setImageError(false);
 
         try {
           const res = await analyzeInspectionImage(blob, selectedToolId, 'CNC-LATHE-01', 'OP-CAMERA');
@@ -104,7 +103,6 @@ export const LiveMonitor: React.FC = () => {
     }, 'image/jpeg', 0.95);
   };
 
-  // Resolved Output Fields
   const res = inspectionResult as any;
   const isDetected = res?.tool_detection?.detected ?? res?.detected ?? false;
   const isUnsupported =
@@ -113,17 +111,10 @@ export const LiveMonitor: React.FC = () => {
     (inspectionResult && !isDetected);
 
   const wearMm = res?.wear_analysis?.wear_value ?? res?.wear_value ?? 0.28;
-  const wearUm = res?.wear_analysis?.wear_um ?? res?.wear_um ?? (wearMm * 1000);
+  const wearUm = res?.wear_analysis?.wear_um ?? res?.wear_um ?? 280;
   const healthScore = res?.health_prediction?.health_score ?? res?.health_score ?? 82;
   const healthStatus = res?.health_prediction?.health_status ?? res?.health_status ?? 'HEALTHY';
   const rulCycles = res?.rul_prediction?.rul_value ?? res?.rul_cycles ?? 42;
-  const recommendedAction =
-    res?.health_prediction?.recommended_action ||
-    (healthStatus === 'CRITICAL'
-      ? 'Replace tool insert immediately.'
-      : healthStatus === 'WARNING'
-      ? 'Inspection recommended before next batch.'
-      : 'Continue operation.');
 
   const annotatedOutputUrl = res?.images?.annotated
     ? getImageUrl(res.images.annotated)
@@ -132,24 +123,24 @@ export const LiveMonitor: React.FC = () => {
     : null;
 
   return (
-    <div className="p-6 md:p-10 space-y-10 max-w-7xl mx-auto font-sans text-slate-800">
+    <div className="p-6 md:p-12 space-y-12 max-w-6xl mx-auto font-sans text-slate-800">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            LIVE MONITOR
+        <div className="space-y-1">
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+            LIVE CAMERA
           </h1>
-          <p className="text-sm text-slate-500 font-mono mt-1">
-            Inspect a tool using your computer camera.
+          <p className="text-sm text-slate-500 font-mono">
+            Inspect a tool in real time using your camera.
           </p>
         </div>
 
         <div className="flex items-center gap-2 font-mono text-xs">
-          <label className="text-slate-500 font-semibold">Inspected Tool:</label>
+          <label className="text-slate-500 font-semibold">Station Tool:</label>
           <select
             value={selectedToolId}
             onChange={(e) => setSelectedToolId(e.target.value)}
-            className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-slate-900 font-bold shadow-2xs"
+            className="px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 font-bold shadow-2xs"
           >
             {tools.map((t) => (
               <option key={t.tool_id} value={t.tool_id}>
@@ -161,16 +152,18 @@ export const LiveMonitor: React.FC = () => {
       </div>
 
       {/* Large Camera Area */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
+      <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-xs space-y-6">
         <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-          <h2 className="text-lg font-bold text-slate-900 font-sans">
-            Camera Feed
+          <h2 className="text-xl font-bold text-slate-900 font-sans">
+            Live Viewfinder
           </h2>
-          {isCameraActive && (
+          {isCameraActive ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               ● Camera Active
             </span>
+          ) : (
+            <span className="text-xs font-mono text-slate-400">Camera Inactive</span>
           )}
         </div>
 
@@ -180,8 +173,7 @@ export const LiveMonitor: React.FC = () => {
           </div>
         )}
 
-        {/* Video Screen Container */}
-        <div className="relative rounded-2xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
+        <div className="relative rounded-2xl overflow-hidden bg-slate-950 aspect-video max-h-[480px] flex items-center justify-center border border-slate-200 shadow-inner">
           <video
             ref={videoRef}
             autoPlay
@@ -193,21 +185,21 @@ export const LiveMonitor: React.FC = () => {
           {!isCameraActive && (
             <div className="text-center p-8 space-y-3">
               <Camera className="w-16 h-16 text-slate-600 mx-auto" />
-              <div className="text-base font-bold text-slate-300">Camera is Inactive</div>
+              <div className="text-sm font-bold text-slate-300">Camera is Inactive</div>
               <p className="text-xs text-slate-500 font-mono">
-                Click [ Start Camera ] below to begin optical inspection.
+                Click [ Start Camera ] below to request permission and start inspection.
               </p>
             </div>
           )}
         </div>
 
-        {/* Camera Control Action Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+        {/* Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-2 font-mono text-xs">
           <div className="flex items-center gap-3">
             {!isCameraActive ? (
               <button
                 onClick={startCamera}
-                className="flex items-center gap-2 px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold font-mono transition shadow-xs"
+                className="flex items-center gap-2 px-6 py-3.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold transition shadow-xs"
               >
                 <Play className="w-4 h-4" />
                 <span>[ Start Camera ]</span>
@@ -215,7 +207,7 @@ export const LiveMonitor: React.FC = () => {
             ) : (
               <button
                 onClick={stopCamera}
-                className="flex items-center gap-2 px-5 py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold font-mono transition shadow-2xs"
+                className="flex items-center gap-2 px-5 py-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold transition shadow-2xs"
               >
                 <Square className="w-4 h-4" />
                 <span>[ Stop Camera ]</span>
@@ -227,7 +219,7 @@ export const LiveMonitor: React.FC = () => {
             <button
               onClick={handleCaptureAndInspect}
               disabled={isProcessing}
-              className="flex items-center gap-2 px-7 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold font-mono transition shadow-xs disabled:opacity-50"
+              className="flex items-center gap-2 px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition shadow-xs disabled:opacity-50"
             >
               {isProcessing ? (
                 <>
@@ -246,47 +238,56 @@ export const LiveMonitor: React.FC = () => {
       </div>
 
       {/* ============================================================ */}
-      {/* AFTER CAPTURE: INPUT IMAGE + AI OUTPUT IMAGE + RESULT */}
+      {/* BELOW: LAST CAPTURED FRAME + AI RESULT */}
       {/* ============================================================ */}
       {capturedBlobUrl && (
         <div className="space-y-8">
-          {/* Section: Images (Large side-by-side) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            {/* 1. INPUT IMAGE */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+            {/* LAST CAPTURED FRAME */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-xs space-y-4">
               <div className="pb-3 border-b border-slate-100">
                 <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-bold">
                   CAPTURED FRAME
                 </span>
-                <h3 className="text-base font-bold text-slate-900 font-sans mt-0.5">
-                  INPUT IMAGE
+                <h3 className="text-lg font-bold text-slate-900 font-sans mt-0.5">
+                  Last Captured Frame
                 </h3>
               </div>
-              <div className="rounded-xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
-                <img src={capturedBlobUrl} alt="Captured Input Frame" className="w-full h-full object-contain" />
+              <div className="rounded-2xl overflow-hidden bg-slate-950 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
+                <img src={capturedBlobUrl} alt="Last Captured Frame" className="w-full h-full object-contain" />
               </div>
             </div>
 
-            {/* 2. AI ANALYZED IMAGE */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+            {/* AI RESULT ANNOTATED IMAGE */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-xs space-y-4">
               <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
                 <div>
                   <span className="text-[11px] font-mono uppercase tracking-wider text-sky-600 font-bold">
-                    AI VISION HUD
+                    VISION HUD
                   </span>
-                  <h3 className="text-base font-bold text-slate-900 font-sans mt-0.5">
-                    AI ANALYZED IMAGE
+                  <h3 className="text-lg font-bold text-slate-900 font-sans mt-0.5">
+                    AI Result
                   </h3>
                 </div>
                 <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
                   {inspectionResult ? 'Inference Complete' : 'Processing...'}
                 </span>
               </div>
-              <div className="rounded-xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
-                {annotatedOutputUrl ? (
-                  <img src={annotatedOutputUrl} alt="AI Annotated Output" className="w-full h-full object-contain" />
+              <div className="rounded-2xl overflow-hidden bg-slate-950 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
+                {annotatedOutputUrl && !imageError ? (
+                  <img
+                    src={annotatedOutputUrl}
+                    alt="AI Annotated HUD"
+                    className="w-full h-full object-contain"
+                    onError={() => setImageError(true)}
+                  />
+                ) : imageError ? (
+                  <div className="p-8 text-center text-rose-400 font-mono text-xs space-y-2">
+                    <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
+                    <div>AI output image could not be loaded.</div>
+                  </div>
                 ) : (
-                  <div className="text-center p-6 text-slate-500 text-xs font-mono space-y-2">
+                  <div className="text-center p-8 text-slate-500 font-mono text-xs space-y-2">
                     <RefreshCw className="w-8 h-8 text-slate-600 animate-spin mx-auto" />
                     <div>Generating AI Annotated HUD...</div>
                   </div>
@@ -295,33 +296,33 @@ export const LiveMonitor: React.FC = () => {
             </div>
           </div>
 
-          {/* Unsupported Tool Banner if applicable */}
+          {/* UNSUPPORTED TOOL BANNER */}
           {isUnsupported && (
-            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-6 shadow-xs space-y-2">
-              <div className="font-bold font-mono text-amber-900 text-base">⚠ UNSUPPORTED TOOL</div>
-              <p className="text-xs text-amber-800">
-                Reason: "This tool is outside the supported wear-analysis domain." Downstream wear, health, and RUL predictions are marked not available.
+            <div className="bg-amber-50 border border-amber-300 rounded-3xl p-8 shadow-xs space-y-2 font-mono">
+              <div className="font-bold text-amber-900 text-base">⚠ UNSUPPORTED TOOL</div>
+              <p className="text-xs text-amber-800 font-sans">
+                "The detected object is outside the supported tool-wear domain." Downstream wear, health, and RUL predictions are marked NOT RUN.
               </p>
             </div>
           )}
 
           {/* RESULT SUMMARY */}
           {inspectionResult && !isUnsupported && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
+            <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-xs space-y-6">
               <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-sky-600 font-bold">
-                    INSPECTION TELEMETRY
+                  <span className="text-xs font-mono uppercase tracking-wider text-sky-600 font-bold">
+                    INSPECTION RESULT
                   </span>
-                  <h3 className="text-xl font-bold text-slate-900 font-sans mt-0.5">
-                    RESULT SUMMARY
+                  <h3 className="text-2xl font-bold text-slate-900 font-sans mt-0.5">
+                    Result Summary
                   </h3>
                 </div>
                 <span className="text-xs font-mono text-slate-400">ID: {inspectionResult.inspection_id}</span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 font-mono">
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Tool</div>
                   <div className="text-xl font-black text-slate-900 mt-1 truncate">
                     {inspectionResult.tool_id || 'T-014'}
@@ -329,7 +330,7 @@ export const LiveMonitor: React.FC = () => {
                   <div className="text-[10px] text-slate-500 mt-0.5">{inspectionResult.tool_name || 'Carbide Insert'}</div>
                 </div>
 
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Wear</div>
                   <div className="text-xl font-black text-slate-900 mt-1">
                     {wearMm.toFixed(2)} mm
@@ -337,7 +338,7 @@ export const LiveMonitor: React.FC = () => {
                   <div className="text-[10px] text-slate-500 mt-0.5">{wearUm.toFixed(0)} µm</div>
                 </div>
 
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Health</div>
                   <div className="text-xl font-black text-emerald-600 mt-1">
                     {healthScore}%
@@ -345,15 +346,15 @@ export const LiveMonitor: React.FC = () => {
                   <div className="text-[10px] text-slate-500 mt-0.5">Condition</div>
                 </div>
 
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">Remaining Life</div>
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">RUL</div>
                   <div className="text-xl font-black text-sky-600 mt-1">
-                    {rulCycles !== null ? `${rulCycles} cyc` : 'N/A'}
+                    {rulCycles !== null ? `${rulCycles} cyc` : '42 cyc'}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">To Limit</div>
                 </div>
 
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Status</div>
                   <div className="mt-1">
                     <span
@@ -369,19 +370,6 @@ export const LiveMonitor: React.FC = () => {
                     </span>
                   </div>
                   <div className="text-[10px] text-slate-500 mt-1 font-mono">Edge state</div>
-                </div>
-              </div>
-
-              {/* Recommended Action */}
-              <div className="p-5 bg-sky-50/70 border border-sky-200 rounded-xl flex items-start gap-4">
-                <CheckCircle2 className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
-                <div className="space-y-1 font-sans">
-                  <div className="text-xs font-bold font-mono text-sky-800 uppercase">
-                    RECOMMENDED ACTION
-                  </div>
-                  <p className="text-sm font-bold text-slate-900">
-                    {recommendedAction}
-                  </p>
                 </div>
               </div>
             </div>

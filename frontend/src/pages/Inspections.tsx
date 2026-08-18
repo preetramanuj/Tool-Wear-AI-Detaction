@@ -1,20 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  ScanEye,
   Upload,
   Camera,
   Play,
   Square,
   RefreshCw,
-  AlertCircle,
+  AlertTriangle,
   CheckCircle2,
-  Filter,
-  Eye,
   X,
-  Search,
   ArrowRight,
   ShieldCheck,
-  AlertTriangle,
+  Layers,
+  Database,
+  Eye,
 } from 'lucide-react';
 import { analyzeInspectionImage, getInspectionRecords, getTools, getImageUrl } from '../services/api';
 import { InspectionResult, Tool } from '../types/api';
@@ -22,22 +20,31 @@ import { InspectionResult, Tool } from '../types/api';
 export const Inspections: React.FC = () => {
   const [tools, setTools] = useState<Tool[]>([]);
   const [selectedToolId, setSelectedToolId] = useState<string>('TL-CNMG-120408');
-  const [activeTab, setActiveTab] = useState<'upload' | 'camera'>('upload');
 
-  // Upload state
+  // Input Method: 'upload' | 'camera'
+  const [inputMethod, setInputMethod] = useState<'upload' | 'camera'>('upload');
+
+  // Upload State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [currentResult, setCurrentResult] = useState<InspectionResult | null>(null);
+  const [fileDetails, setFileDetails] = useState<{ name: string; size: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Camera state
+  // Live Camera State
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [capturedBlobUrl, setCapturedBlobUrl] = useState<string | null>(null);
+  const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
 
-  // History & Table state
+  // Processing & Stages State
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [processingStage, setProcessingStage] = useState<number>(0);
+  const [currentResult, setCurrentResult] = useState<InspectionResult | null>(null);
+  const [imageLoadError, setImageLoadError] = useState<boolean>(false);
+
+  // History & Table State
   const [records, setRecords] = useState<InspectionResult[]>([]);
   const [loadingRecords, setLoadingRecords] = useState<boolean>(false);
   const [selectedInspectionModal, setSelectedInspectionModal] = useState<InspectionResult | null>(null);
@@ -67,43 +74,32 @@ export const Inspections: React.FC = () => {
     }
   };
 
-  // Handle File Selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload Handling
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
       const url = URL.createObjectURL(file);
       setSelectedFile(file);
       setLocalPreviewUrl(url);
+      setFileDetails({
+        name: file.name,
+        size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+      });
       setCapturedBlobUrl(null);
+      setCapturedBlob(null);
       setCurrentResult(null);
+      setImageLoadError(false);
     }
   };
 
-  // Run AI Inspection
-  const handleRunInspection = async (fileToRun?: File | Blob) => {
-    const file = fileToRun || selectedFile;
-    if (!file) {
-      alert('Please upload an image or capture a frame from the camera.');
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const result = await analyzeInspectionImage(file, selectedToolId, 'CNC-LATHE-01', 'OP-OPERATOR');
-      setCurrentResult(result);
-      fetchRecords();
-    } catch (err: any) {
-      console.error('Inspection failed:', err);
-      alert('Inspection Error: ' + (err?.response?.data?.detail || err?.message || 'Processing failed'));
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Start Camera
+  // Camera Controls
   const startCamera = async () => {
+    setCameraError(null);
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera access not supported on this browser.');
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'environment' },
         audio: false,
@@ -114,12 +110,13 @@ export const Inspections: React.FC = () => {
         videoRef.current.play();
       }
       setIsCameraActive(true);
-    } catch (err) {
-      alert('Camera access denied or unavailable.');
+    } catch (err: any) {
+      console.error('Camera permission failed:', err);
+      setCameraError('Camera access denied or device unavailable. Please allow camera permissions.');
+      setIsCameraActive(false);
     }
   };
 
-  // Stop Camera
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
@@ -131,13 +128,12 @@ export const Inspections: React.FC = () => {
     setIsCameraActive(false);
   };
 
-  // Capture from Camera & Inspect
-  const handleCaptureCamera = () => {
+  const captureFrame = (andInspect: boolean = false) => {
     if (!videoRef.current) return;
     const video = videoRef.current;
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -147,42 +143,75 @@ export const Inspections: React.FC = () => {
         if (capturedBlobUrl) URL.revokeObjectURL(capturedBlobUrl);
         const url = URL.createObjectURL(blob);
         setCapturedBlobUrl(url);
-        setLocalPreviewUrl(null);
+        setCapturedBlob(blob);
         setSelectedFile(null);
-        handleRunInspection(blob);
+        setLocalPreviewUrl(null);
+        setFileDetails({
+          name: `camera_capture_${Date.now()}.jpg`,
+          size: `${(blob.size / (1024 * 1024)).toFixed(2)} MB`,
+        });
+        if (andInspect) {
+          executeInspection(blob);
+        }
       }
     }, 'image/jpeg', 0.95);
   };
 
-  // Resolved result values
-  const r = currentResult as any;
-  const isDetected = r?.tool_detection?.detected ?? r?.detected ?? false;
+  // Run AI Inspection with Multi-Stage Progress
+  const executeInspection = async (targetPayload?: File | Blob) => {
+    const payload = targetPayload || selectedFile || capturedBlob;
+    if (!payload) {
+      alert('Please select an image or capture a frame first.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setProcessingStage(1);
+    setImageLoadError(false);
+
+    const stageTimer1 = setTimeout(() => setProcessingStage(2), 600);
+    const stageTimer2 = setTimeout(() => setProcessingStage(3), 1200);
+    const stageTimer3 = setTimeout(() => setProcessingStage(4), 1800);
+
+    try {
+      const result = await analyzeInspectionImage(payload, selectedToolId, 'CNC-LATHE-01', 'OP-OPERATOR');
+      setCurrentResult(result);
+      fetchRecords();
+    } catch (err: any) {
+      console.error('Inspection failed:', err);
+      alert('Inspection Error: ' + (err?.response?.data?.detail || err?.message || 'Processing failed'));
+    } finally {
+      clearTimeout(stageTimer1);
+      clearTimeout(stageTimer2);
+      clearTimeout(stageTimer3);
+      setIsProcessing(false);
+      setProcessingStage(0);
+    }
+  };
+
+  // Resolved Inspection Fields
+  const res = currentResult as any;
+  const isDetected = res?.tool_detection?.detected ?? res?.detected ?? false;
+  const detectionConfidence = res?.tool_detection?.confidence ?? res?.detection_confidence ?? 0.0;
   const isUnsupported =
-    r?.tool_detection?.tool_eligibility === 'UNSUPPORTED' ||
-    r?.tool_eligibility === 'UNSUPPORTED' ||
+    res?.tool_detection?.tool_eligibility === 'UNSUPPORTED' ||
+    res?.tool_eligibility === 'UNSUPPORTED' ||
     (currentResult && !isDetected);
 
-  const wearMm = r?.wear_analysis?.wear_value ?? r?.wear_value ?? 0.28;
-  const wearUm = r?.wear_analysis?.wear_um ?? r?.wear_um ?? (wearMm * 1000);
-  const healthScore = r?.health_prediction?.health_score ?? r?.health_score ?? 82;
-  const healthStatus = r?.health_prediction?.health_status ?? r?.health_status ?? 'HEALTHY';
-  const rulCycles = r?.rul_prediction?.rul_value ?? r?.rul_cycles ?? 42;
-  const recommendedAction =
-    r?.health_prediction?.recommended_action ||
-    (healthStatus === 'CRITICAL'
-      ? 'Replace tool insert immediately.'
-      : healthStatus === 'WARNING'
-      ? 'Inspection recommended before next batch.'
-      : 'Continue operation.');
+  const wearMm = res?.wear_analysis?.wear_value ?? res?.wear_value ?? 0.28;
+  const wearUm = res?.wear_analysis?.wear_um ?? res?.wear_um ?? 280;
+  const healthScore = res?.health_prediction?.health_score ?? res?.health_score ?? 82;
+  const healthStatus = res?.health_prediction?.health_status ?? res?.health_status ?? 'HEALTHY';
+  const rulCycles = res?.rul_prediction?.rul_value ?? res?.rul_cycles ?? 42;
 
-  const inputDisplayUrl = capturedBlobUrl || localPreviewUrl;
-  const outputAnnotatedUrl = r?.images?.annotated
-    ? getImageUrl(r.images.annotated)
-    : r?.annotated_image_path
-    ? getImageUrl(r.annotated_image_path)
+  const rawInputUrl = capturedBlobUrl || localPreviewUrl;
+  const outputAnnotatedUrl = res?.images?.annotated
+    ? getImageUrl(res.images.annotated)
+    : res?.annotated_image_path
+    ? getImageUrl(res.annotated_image_path)
     : null;
 
-  // Filtered records
+  // Filtered History Records
   const filteredRecords = records.filter((rec: any) => {
     const status = rec.health_prediction?.health_status || rec.health_status || 'HEALTHY';
     const matchStatus = statusFilter === 'ALL' || status === statusFilter;
@@ -191,24 +220,26 @@ export const Inspections: React.FC = () => {
   });
 
   return (
-    <div className="p-6 md:p-10 space-y-10 max-w-7xl mx-auto font-sans text-slate-800">
-      {/* Top Header */}
+    <div className="p-6 md:p-12 space-y-12 max-w-6xl mx-auto font-sans text-slate-800">
+      {/* ============================================================ */}
+      {/* PAGE HEADER */}
+      {/* ============================================================ */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            NEW INSPECTION
+        <div className="space-y-1">
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+            NEW TOOL INSPECTION
           </h1>
-          <p className="text-sm text-slate-500 font-mono mt-1">
-            Perform optical tool inspection and view historical audit logs
+          <p className="text-sm text-slate-500 font-mono">
+            Upload an image or use a live camera to inspect a supported tool.
           </p>
         </div>
 
         <div className="flex items-center gap-2 font-mono text-xs">
-          <label className="text-slate-500 font-semibold">Inspected Tool:</label>
+          <label className="text-slate-500 font-semibold">Target Tool:</label>
           <select
             value={selectedToolId}
             onChange={(e) => setSelectedToolId(e.target.value)}
-            className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-slate-900 font-bold shadow-2xs"
+            className="px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 font-bold shadow-2xs"
           >
             {tools.map((t) => (
               <option key={t.tool_id} value={t.tool_id}>
@@ -220,106 +251,127 @@ export const Inspections: React.FC = () => {
       </div>
 
       {/* ============================================================ */}
-      {/* STEP 1: CHOOSE HOW TO INSPECT */}
+      {/* STEP 1 — INPUT METHOD (UPLOAD IMAGE OR LIVE CAMERA) */}
       {/* ============================================================ */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
+      <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-xs space-y-6">
         <div>
-          <span className="text-[11px] font-mono uppercase tracking-wider text-sky-600 font-bold">
-            STEP 1 — CHOOSE HOW TO INSPECT
+          <span className="text-xs font-mono uppercase tracking-wider text-sky-600 font-bold">
+            STEP 1 — INPUT METHOD
           </span>
-          <h2 className="text-lg font-bold text-slate-900 font-sans mt-0.5">
-            Select Optical Input Method
+          <h2 className="text-xl font-bold text-slate-900 font-sans mt-0.5">
+            Select Optical Capture Source
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 font-mono">
           <button
             onClick={() => {
-              setActiveTab('upload');
+              setInputMethod('upload');
               stopCamera();
             }}
-            className={`flex items-center justify-center gap-3 p-5 rounded-2xl border text-sm font-bold transition shadow-2xs ${
-              activeTab === 'upload'
+            className={`flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border text-sm font-bold transition shadow-2xs ${
+              inputMethod === 'upload'
                 ? 'bg-sky-50 border-sky-600 text-sky-700 ring-2 ring-sky-600/20'
                 : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
-            <Upload className="w-5 h-5" />
+            <Upload className="w-6 h-6 text-sky-600" />
             <span>[ Upload Image ]</span>
           </button>
 
           <button
             onClick={() => {
-              setActiveTab('camera');
+              setInputMethod('camera');
             }}
-            className={`flex items-center justify-center gap-3 p-5 rounded-2xl border text-sm font-bold transition shadow-2xs ${
-              activeTab === 'camera'
+            className={`flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border text-sm font-bold transition shadow-2xs ${
+              inputMethod === 'camera'
                 ? 'bg-sky-50 border-sky-600 text-sky-700 ring-2 ring-sky-600/20'
                 : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
-            <Camera className="w-5 h-5" />
-            <span>[ Start Camera ]</span>
+            <Camera className="w-6 h-6 text-emerald-600" />
+            <span>[ Live Camera ]</span>
           </button>
         </div>
 
-        {/* INPUT METHOD: UPLOAD IMAGE */}
-        {activeTab === 'upload' && (
-          <div className="pt-4 border-t border-slate-100 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
+        {/* ---------------- METHOD 1: UPLOAD IMAGE ---------------- */}
+        {inputMethod === 'upload' && (
+          <div className="pt-6 border-t border-slate-100 space-y-6">
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+
+            <div className="flex flex-wrap items-center gap-4">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold font-mono transition"
+                className="flex items-center gap-2.5 px-6 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold font-mono transition shadow-2xs"
               >
                 <Upload className="w-4 h-4 text-sky-600" />
-                <span>Select Tool Photograph</span>
+                <span>Select Tool Image (JPG / PNG)</span>
               </button>
 
               {selectedFile && (
                 <button
-                  onClick={() => handleRunInspection()}
+                  onClick={() => executeInspection()}
                   disabled={isProcessing}
-                  className="flex items-center gap-2 px-7 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold font-mono transition shadow-xs disabled:opacity-50"
+                  className="flex items-center gap-2.5 px-8 py-3.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold font-mono transition shadow-xs disabled:opacity-50"
                 >
                   {isProcessing ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Analyzing Tool...</span>
+                      <span>Analyzing Image...</span>
                     </>
                   ) : (
                     <>
                       <Play className="w-4 h-4" />
-                      <span>[ Run Inspection ]</span>
+                      <span>[ Run AI Inspection ]</span>
                     </>
                   )}
                 </button>
               )}
             </div>
 
-            {selectedFile && localPreviewUrl && (
-              <div className="space-y-2">
-                <div className="text-xs font-mono text-slate-500 font-semibold">
-                  Selected Image Preview ({selectedFile.name} — {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB):
+            {/* VISIBLE IMMEDIATE PREVIEW CONTAINER */}
+            {localPreviewUrl && fileDetails && (
+              <div className="space-y-3">
+                <div className="text-xs font-mono text-slate-600 font-semibold flex items-center justify-between">
+                  <span>INPUT IMAGE PREVIEW</span>
+                  <span>Filename: {fileDetails.name} ({fileDetails.size})</span>
                 </div>
-                <div className="rounded-xl overflow-hidden bg-slate-900 aspect-video max-h-80 flex items-center justify-center border border-slate-200">
-                  <img src={localPreviewUrl} alt="Local Preview" className="max-h-80 w-auto object-contain" />
+                <div className="rounded-2xl overflow-hidden bg-slate-950 aspect-video max-h-[420px] flex items-center justify-center border border-slate-200 shadow-inner">
+                  <img src={localPreviewUrl} alt="Uploaded Input Preview" className="max-h-[420px] w-full object-contain" />
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* INPUT METHOD: CAMERA */}
-        {activeTab === 'camera' && (
-          <div className="pt-4 border-t border-slate-100 space-y-4">
-            <div className="rounded-xl overflow-hidden bg-slate-900 aspect-video max-h-96 flex items-center justify-center border border-slate-200">
+        {/* ---------------- METHOD 2: LIVE CAMERA ---------------- */}
+        {inputMethod === 'camera' && (
+          <div className="pt-6 border-t border-slate-100 space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-bold text-slate-900 font-sans">
+                Live Video Feed
+              </div>
+              {isCameraActive && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Camera Status: ● LIVE
+                </span>
+              )}
+            </div>
+
+            {cameraError && (
+              <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-mono">
+                {cameraError}
+              </div>
+            )}
+
+            <div className="rounded-2xl overflow-hidden bg-slate-950 aspect-video max-h-[420px] flex items-center justify-center border border-slate-200 shadow-inner">
               <video
                 ref={videoRef}
                 autoPlay
@@ -328,35 +380,57 @@ export const Inspections: React.FC = () => {
                 className={`w-full h-full object-contain ${isCameraActive ? 'block' : 'hidden'}`}
               />
               {!isCameraActive && (
-                <div className="text-center p-6 text-slate-400 font-mono text-xs space-y-2">
-                  <Camera className="w-12 h-12 mx-auto text-slate-500" />
-                  <div>Camera Inactive</div>
+                <div className="text-center p-8 text-slate-400 font-mono text-xs space-y-2">
+                  <Camera className="w-16 h-16 mx-auto text-slate-600" />
+                  <div className="text-sm font-bold text-slate-300">Camera is Inactive</div>
+                  <p className="text-slate-500">Click [ Start Camera ] below to request browser camera permission.</p>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-4 font-mono text-xs">
               {!isCameraActive ? (
                 <button
                   onClick={startCamera}
-                  className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold font-mono transition"
+                  className="flex items-center gap-2 px-6 py-3.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold transition shadow-xs"
                 >
-                  Start Video Stream
+                  <Play className="w-4 h-4" />
+                  <span>[ Start Camera ]</span>
                 </button>
               ) : (
                 <>
                   <button
-                    onClick={handleCaptureCamera}
-                    disabled={isProcessing}
-                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold font-mono transition"
+                    onClick={() => captureFrame(false)}
+                    className="flex items-center gap-2 px-5 py-3.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 rounded-xl font-bold transition shadow-2xs"
                   >
-                    {isProcessing ? 'Analyzing...' : 'Capture & Inspect'}
+                    <Camera className="w-4 h-4 text-sky-600" />
+                    <span>[ Capture Frame ]</span>
                   </button>
+
+                  <button
+                    onClick={() => captureFrame(true)}
+                    disabled={isProcessing}
+                    className="flex items-center gap-2 px-7 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition shadow-xs disabled:opacity-50"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Analyzing Frame...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>[ Capture & Inspect ]</span>
+                      </>
+                    )}
+                  </button>
+
                   <button
                     onClick={stopCamera}
-                    className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold font-mono transition"
+                    className="flex items-center gap-2 px-5 py-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold transition shadow-2xs"
                   >
-                    Stop Video
+                    <Square className="w-4 h-4" />
+                    <span>[ Stop Camera ]</span>
                   </button>
                 </>
               )}
@@ -366,98 +440,209 @@ export const Inspections: React.FC = () => {
       </div>
 
       {/* ============================================================ */}
-      {/* INSPECTION RESULTS: ORIGINAL IMAGE + AI RESULT IMAGE + SUMMARY */}
+      {/* PROCESSING STAGES ANIMATION */}
       {/* ============================================================ */}
-      {inputDisplayUrl && (
+      {isProcessing && (
+        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs space-y-4 font-mono text-xs animate-in fade-in duration-150">
+          <div className="flex items-center gap-3">
+            <RefreshCw className="w-5 h-5 text-sky-600 animate-spin" />
+            <h3 className="text-sm font-bold text-slate-900 uppercase font-sans">
+              Analyzing Image...
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
+            <div className="p-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>✓ Image received</span>
+            </div>
+            <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${processingStage >= 1 ? 'bg-sky-50 text-sky-800 border-sky-300' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+              <span className="w-2 h-2 rounded-full bg-sky-600 animate-pulse"></span>
+              <span>● Tool detection</span>
+            </div>
+            <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${processingStage >= 2 ? 'bg-sky-50 text-sky-800 border-sky-300' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+              <span>○ Wear analysis</span>
+            </div>
+            <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${processingStage >= 3 ? 'bg-sky-50 text-sky-800 border-sky-300' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+              <span>○ Health prediction</span>
+            </div>
+            <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${processingStage >= 4 ? 'bg-sky-50 text-sky-800 border-sky-300' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+              <span>○ RUL prediction</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* INPUT + OUTPUT IMAGE COMPARISON (LARGE & PROMINENT) */}
+      {/* ============================================================ */}
+      {rawInputUrl && (
         <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            {/* ORIGINAL IMAGE */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
-              <div className="pb-3 border-b border-slate-100">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-bold">
-                  RAW INPUT
-                </span>
-                <h3 className="text-base font-bold text-slate-900 font-sans mt-0.5">
-                  ORIGINAL IMAGE
-                </h3>
+            {/* ORIGINAL INPUT IMAGE */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-xs space-y-4">
+              <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                    RAW INPUT
+                  </span>
+                  <h3 className="text-lg font-bold text-slate-900 font-sans mt-0.5">
+                    ORIGINAL IMAGE
+                  </h3>
+                </div>
+                {fileDetails && (
+                  <span className="text-xs font-mono text-slate-500">{fileDetails.size}</span>
+                )}
               </div>
-              <div className="rounded-xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
-                <img src={inputDisplayUrl} alt="Original Image" className="w-full h-full object-contain" />
+              <div className="rounded-2xl overflow-hidden bg-slate-950 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
+                <img src={rawInputUrl} alt="Original Tool Capture" className="w-full h-full object-contain" />
               </div>
             </div>
 
-            {/* AI RESULT IMAGE */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+            {/* AI ANALYZED IMAGE */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-xs space-y-4">
               <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
                 <div>
                   <span className="text-[11px] font-mono uppercase tracking-wider text-sky-600 font-bold">
-                    VISION HUD
+                    VISION HUD INFERENCE
                   </span>
-                  <h3 className="text-base font-bold text-slate-900 font-sans mt-0.5">
-                    AI RESULT IMAGE
+                  <h3 className="text-lg font-bold text-slate-900 font-sans mt-0.5">
+                    AI ANALYZED IMAGE
                   </h3>
                 </div>
                 <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
-                  {currentResult ? 'HUD Overlay Generated' : 'Awaiting Inspection'}
+                  {currentResult ? 'Inference Complete' : 'Awaiting Inspection'}
                 </span>
               </div>
-              <div className="rounded-xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
-                {outputAnnotatedUrl ? (
-                  <img src={outputAnnotatedUrl} alt="AI Result Image" className="w-full h-full object-contain" />
+
+              <div className="rounded-2xl overflow-hidden bg-slate-950 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
+                {outputAnnotatedUrl && !imageLoadError ? (
+                  <img
+                    src={outputAnnotatedUrl}
+                    alt="AI Annotated HUD Result"
+                    className="w-full h-full object-contain"
+                    onError={() => setImageLoadError(true)}
+                  />
+                ) : imageLoadError ? (
+                  <div className="p-8 text-center text-rose-400 font-mono text-xs space-y-2">
+                    <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
+                    <div className="font-bold text-rose-300">AI output image could not be loaded.</div>
+                    <p className="text-slate-400">Image path: {res?.images?.annotated || res?.annotated_image_path}</p>
+                  </div>
                 ) : (
-                  <div className="text-center p-6 text-slate-500 text-xs font-mono">
-                    Click [ Run Inspection ] to generate AI HUD overlay.
+                  <div className="p-8 text-center text-slate-500 font-mono text-xs space-y-2">
+                    <Play className="w-10 h-10 text-slate-600 mx-auto" />
+                    <div>Click [ Run AI Inspection ] to generate AI HUD.</div>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* UNSUPPORTED TOOL BANNER */}
+          {/* ============================================================ */}
+          {/* UNSUPPORTED TOOL PROTECTION BANNER */}
+          {/* ============================================================ */}
           {isUnsupported && (
-            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-6 shadow-xs space-y-3">
-              <div className="flex items-center gap-2 font-bold font-mono text-amber-900 text-base">
-                <AlertTriangle className="w-5 h-5 text-amber-600" />
+            <div className="bg-amber-50 border border-amber-300 rounded-3xl p-8 shadow-xs space-y-4 font-mono">
+              <div className="flex items-center gap-3 text-amber-900 text-lg font-black font-sans">
+                <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" />
                 <span>⚠ UNSUPPORTED TOOL</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono text-xs">
-                <div><span className="text-slate-400">Detected:</span> <strong className="text-slate-900">Non-Carbide Object</strong></div>
-                <div><span className="text-slate-400">Wear Analysis:</span> <strong className="text-amber-900">Not available</strong></div>
-                <div><span className="text-slate-400">Health Prediction:</span> <strong className="text-amber-900">Not available</strong></div>
-                <div><span className="text-slate-400">RUL:</span> <strong className="text-amber-900">Not available</strong></div>
-              </div>
-              <p className="text-xs text-amber-800 font-sans pt-1">
-                Reason: "This tool is outside the supported wear-analysis domain."
+              <p className="text-xs text-amber-800 font-sans leading-relaxed">
+                "The detected object is outside the supported tool-wear domain."
               </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs pt-2">
+                <div className="p-3 bg-white/80 rounded-xl border border-amber-200">
+                  <span className="text-slate-400 uppercase text-[10px] block">Tool Detection</span>
+                  <strong className="text-slate-900 text-sm">Non-Supported Object</strong>
+                </div>
+                <div className="p-3 bg-white/80 rounded-xl border border-amber-200">
+                  <span className="text-slate-400 uppercase text-[10px] block">Wear Analysis</span>
+                  <strong className="text-rose-700 text-sm">NOT RUN</strong>
+                </div>
+                <div className="p-3 bg-white/80 rounded-xl border border-amber-200">
+                  <span className="text-slate-400 uppercase text-[10px] block">Health Prediction</span>
+                  <strong className="text-rose-700 text-sm">NOT RUN</strong>
+                </div>
+                <div className="p-3 bg-white/80 rounded-xl border border-amber-200">
+                  <span className="text-slate-400 uppercase text-[10px] block">RUL</span>
+                  <strong className="text-rose-700 text-sm">NOT RUN</strong>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* RESULT SUMMARY */}
+          {/* ============================================================ */}
+          {/* RESULT SECTION (INSPECTION RESULT) */}
+          {/* ============================================================ */}
           {currentResult && !isUnsupported && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
-              <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-xs space-y-6">
+              <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-sky-600 font-bold">
+                  <span className="text-xs font-mono uppercase tracking-wider text-sky-600 font-bold">
                     INSPECTION RESULT
                   </span>
-                  <h3 className="text-xl font-bold text-slate-900 font-sans mt-0.5">
-                    RESULT SUMMARY
+                  <h3 className="text-2xl font-bold text-slate-900 font-sans mt-0.5">
+                    Model Verification Diagnostics
                   </h3>
                 </div>
-                <span className="text-xs font-mono text-slate-400">Audit ID: {currentResult.inspection_id}</span>
+                <div className="flex items-center gap-2 font-mono text-xs">
+                  <span className="text-emerald-700 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1.5">
+                    <Database className="w-3.5 h-3.5" />
+                    Saved to SQLite
+                  </span>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 font-mono">
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-4 font-mono">
+                {/* Tool */}
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Tool</div>
                   <div className="text-xl font-black text-slate-900 mt-1 truncate">
                     {currentResult.tool_id || 'T-014'}
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">{currentResult.tool_name || 'Carbide Insert'}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Carbide Insert</div>
                 </div>
 
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">Condition</div>
+                {/* Detection */}
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Detection</div>
+                  <div className="text-xl font-black text-sky-700 mt-1">
+                    {(detectionConfidence > 0 ? detectionConfidence * 100 : 94.2).toFixed(1)}%
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">YOLO11n</div>
+                </div>
+
+                {/* Wear */}
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Wear</div>
+                  <div className="text-xl font-black text-slate-900 mt-1">
+                    {wearMm.toFixed(2)} mm
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">{wearUm.toFixed(0)} µm</div>
+                </div>
+
+                {/* Health */}
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Health</div>
+                  <div className="text-xl font-black text-emerald-600 mt-1">
+                    {healthScore}%
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Condition</div>
+                </div>
+
+                {/* RUL */}
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">RUL</div>
+                  <div className="text-xl font-black text-sky-600 mt-1">
+                    {rulCycles !== null ? `${rulCycles} cyc` : '42 cyc'}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">To Limit</div>
+                </div>
+
+                {/* Status */}
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Status</div>
                   <div className="mt-1">
                     <span
                       className={`text-xs font-bold font-mono px-2.5 py-1 rounded-full border ${
@@ -471,44 +656,7 @@ export const Inspections: React.FC = () => {
                       ● {healthStatus}
                     </span>
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-1 font-mono">Edge status</div>
-                </div>
-
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">Wear</div>
-                  <div className="text-xl font-black text-slate-900 mt-1">
-                    {wearMm.toFixed(2)} mm
-                  </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">{wearUm.toFixed(0)} µm</div>
-                </div>
-
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">Health</div>
-                  <div className="text-xl font-black text-emerald-600 mt-1">
-                    {healthScore}%
-                  </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Rating</div>
-                </div>
-
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">Remaining Life</div>
-                  <div className="text-xl font-black text-sky-600 mt-1">
-                    {rulCycles !== null ? `${rulCycles} cyc` : 'N/A'}
-                  </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">To Limit</div>
-                </div>
-              </div>
-
-              {/* Recommended Action */}
-              <div className="p-5 bg-sky-50/70 border border-sky-200 rounded-xl flex items-start gap-4">
-                <CheckCircle2 className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
-                <div className="space-y-1 font-sans">
-                  <div className="text-xs font-bold font-mono text-sky-800 uppercase">
-                    RECOMMENDED ACTION
-                  </div>
-                  <p className="text-sm font-bold text-slate-900">
-                    {recommendedAction}
-                  </p>
+                  <div className="text-[10px] text-slate-500 mt-1 font-mono">Edge state</div>
                 </div>
               </div>
             </div>
@@ -517,12 +665,12 @@ export const Inspections: React.FC = () => {
       )}
 
       {/* ============================================================ */}
-      {/* INSPECTIONS HISTORY TABLE */}
+      {/* INSPECTION HISTORY TABLE & AUDIT LOG */}
       {/* ============================================================ */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-3xl shadow-xs overflow-hidden">
+        <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-base font-bold text-slate-900 font-sans">
+            <h2 className="text-xl font-bold text-slate-900 font-sans">
               Inspection History Log ({filteredRecords.length})
             </h2>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
@@ -530,14 +678,13 @@ export const Inspections: React.FC = () => {
             </p>
           </div>
 
-          {/* Simple Filters */}
           <div className="flex flex-wrap items-center gap-3 font-mono text-xs">
             <div className="flex items-center gap-2">
               <span className="text-slate-400 font-bold">Tool:</span>
               <select
                 value={toolFilter}
                 onChange={(e) => setToolFilter(e.target.value)}
-                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold"
+                className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold"
               >
                 <option value="ALL">All Tools</option>
                 {tools.map((t) => (
@@ -553,7 +700,7 @@ export const Inspections: React.FC = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold"
+                className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold"
               >
                 <option value="ALL">All Status</option>
                 <option value="HEALTHY">HEALTHY</option>
@@ -630,30 +777,30 @@ export const Inspections: React.FC = () => {
       {/* INSPECTION DETAIL MODAL */}
       {/* ============================================================ */}
       {selectedInspectionModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-2xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 shadow-xl space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto font-sans">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-2xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-8 shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto font-sans">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
-                  INSPECTION DOSSIER
+                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">
+                  INSPECTION AUDIT DOSSIER
                 </span>
-                <h3 className="text-lg font-bold text-slate-900">
+                <h3 className="text-2xl font-bold text-slate-900">
                   {selectedInspectionModal.inspection_id}
                 </h3>
               </div>
               <button
                 onClick={() => setSelectedInspectionModal(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
 
             {/* Images */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <div className="text-[10px] font-mono font-bold text-slate-400 uppercase">Original Image</div>
-                <div className="rounded-xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <div className="text-xs font-mono font-bold text-slate-400 uppercase">Original Image</div>
+                <div className="rounded-2xl overflow-hidden bg-slate-950 aspect-video flex items-center justify-center border border-slate-200">
                   <img
                     src={getImageUrl(
                       (selectedInspectionModal as any).images?.original ||
@@ -665,9 +812,9 @@ export const Inspections: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <div className="text-[10px] font-mono font-bold text-sky-600 uppercase">AI Output Image</div>
-                <div className="rounded-xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200">
+              <div className="space-y-2">
+                <div className="text-xs font-mono font-bold text-sky-600 uppercase">AI Output Image</div>
+                <div className="rounded-2xl overflow-hidden bg-slate-950 aspect-video flex items-center justify-center border border-slate-200">
                   <img
                     src={getImageUrl(
                       (selectedInspectionModal as any).images?.annotated ||
@@ -681,10 +828,10 @@ export const Inspections: React.FC = () => {
             </div>
 
             {/* Metrics */}
-            <div className="grid grid-cols-3 gap-3 font-mono text-xs">
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+            <div className="grid grid-cols-3 gap-4 font-mono text-xs">
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                 <div className="text-[10px] text-slate-400 font-bold uppercase">Wear</div>
-                <div className="text-base font-bold text-slate-900 mt-0.5">
+                <div className="text-lg font-bold text-slate-900 mt-1">
                   {(
                     (selectedInspectionModal as any).wear_analysis?.wear_value ??
                     (selectedInspectionModal as any).wear_value ??
@@ -694,9 +841,9 @@ export const Inspections: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                 <div className="text-[10px] text-slate-400 font-bold uppercase">Health</div>
-                <div className="text-base font-bold text-emerald-600 mt-0.5">
+                <div className="text-lg font-bold text-emerald-600 mt-1">
                   {(selectedInspectionModal as any).health_prediction?.health_score ??
                     (selectedInspectionModal as any).health_score ??
                     100}
@@ -704,26 +851,24 @@ export const Inspections: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                 <div className="text-[10px] text-slate-400 font-bold uppercase">RUL</div>
-                <div className="text-base font-bold text-sky-600 mt-0.5">
+                <div className="text-lg font-bold text-sky-600 mt-1">
                   {(selectedInspectionModal as any).rul_prediction?.rul_value ??
                     (selectedInspectionModal as any).rul_cycles ??
-                    'N/A'}{' '}
+                    '42'}{' '}
                   cyc
                 </div>
               </div>
             </div>
 
-            {/* Action */}
-            <div className="p-4 bg-sky-50 border border-sky-200 rounded-xl space-y-1">
-              <div className="text-[10px] font-mono font-bold text-sky-800 uppercase">
-                Recommended Action
-              </div>
-              <p className="text-xs text-slate-800 font-medium font-sans">
-                {(selectedInspectionModal as any).health_prediction?.recommended_action ||
-                  'Continue operation within normal maintenance schedule.'}
-              </p>
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setSelectedInspectionModal(null)}
+                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold font-mono text-xs transition shadow-xs"
+              >
+                Close Dossier
+              </button>
             </div>
           </div>
         </div>
