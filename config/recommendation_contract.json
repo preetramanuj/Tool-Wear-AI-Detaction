@@ -1,0 +1,97 @@
+{
+  "contract_version": "1.0",
+  "system_type": "OBSERVED_CONFIGURATION_RECOMMENDER",
+  "entry_point": {
+    "module": "src.recommendation.recommender",
+    "class": "ParameterRecommender",
+    "method": "recommend"
+  },
+  "inputs": {
+    "current_state": {
+      "type": "dict",
+      "required": true,
+      "description": "A dictionary containing the current state of the tool",
+      "fields": {
+        "current_wear_um": {
+          "type": "float",
+          "required": false,
+          "unit": "µm",
+          "description": "Current measured wear of the tool. If not provided, recommendations that strictly require it might fail."
+        }
+      }
+    },
+    "current_material": {
+      "type": "int",
+      "required": false,
+      "description": "Identifier for the current material being machined. Filters out candidates that don't match."
+    },
+    "current_coating": {
+      "type": "int",
+      "required": false,
+      "description": "Identifier for the current coating of the tool. Filters out candidates that don't match."
+    }
+  },
+  "outputs": {
+    "status": {
+      "type": "string",
+      "possible_values": [
+        "RECOMMENDATION_GENERATED",
+        "NO_RECOMMENDATION"
+      ],
+      "description": "Whether a valid recommendation could be produced."
+    },
+    "recommendation": {
+      "type": "dict",
+      "required_if": "status == 'RECOMMENDATION_GENERATED'",
+      "fields": {
+        "n": {
+          "type": "int",
+          "unit": "RPM"
+        },
+        "fz": {
+          "type": "float",
+          "unit": "mm/tooth"
+        },
+        "Ap": {
+          "type": "float",
+          "unit": "mm"
+        }
+      }
+    },
+    "expected_wear_rate": {
+      "type": "float",
+      "required_if": "status == 'RECOMMENDATION_GENERATED'",
+      "unit": "µm/cycle",
+      "description": "The empirically derived expected wear rate for this specific configuration."
+    },
+    "productivity_metric": {
+      "type": "float",
+      "required_if": "status == 'RECOMMENDATION_GENERATED'",
+      "description": "The unnormalized productivity metric (MRR proportional: n * fz * Ap)."
+    },
+    "alternatives": {
+      "type": "int",
+      "description": "The number of other feasible candidates that passed all constraints but scored lower."
+    },
+    "violations_count": {
+      "type": "int",
+      "description": "The number of candidates that were rejected due to constraint violations."
+    },
+    "reason": {
+      "type": "string",
+      "required_if": "status == 'NO_RECOMMENDATION'",
+      "description": "Explanation of why no recommendation was generated."
+    },
+    "violations": {
+      "type": "list",
+      "required_if": "status == 'NO_RECOMMENDATION'",
+      "description": "List of dictionaries detailing constraint violations for the considered candidates."
+    }
+  },
+  "safety_rules": [
+    "REJECT_UNSUPPORTED_CONFIGURATIONS: The system only recommends exact n/fz/Ap combinations that exist in the historical data.",
+    "REJECT_SET_1: Configurations from dataset Set 1 are not valid candidates.",
+    "RUL_CONSTRAINT: If `current_wear_um` is provided, it predicts wear until end of required cycles, rejecting combinations exceeding failure thresholds.",
+    "FAIL_SAFE: Invalid or severely missing state leading to an empty feasible candidate set produces NO_RECOMMENDATION instead of a guess."
+  ]
+}
