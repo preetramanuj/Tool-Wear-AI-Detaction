@@ -1,9 +1,12 @@
+import os
 import base64
 from typing import Optional
 from fastapi import APIRouter, File, UploadFile, Form, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
+from backend.core.config import settings
 from backend.core.database import get_db
 from backend.services.inspection_pipeline_service import inspection_pipeline_service
 from backend.database.crud import get_inspections, get_inspection_by_id
@@ -177,3 +180,56 @@ async def get_inspection_detail(
             }
         }
     }
+
+@router.get("/image")
+async def get_inspection_image_by_path(path: str = Query(..., description="Image path or filename")):
+    """
+    Serve raw or annotated inspection images safely to browser.
+    Resolves relative, storage, and processed image paths.
+    """
+    clean_path = path.lstrip("/").replace("\\", "/")
+    
+    # Try resolving within STORAGE_DIR
+    if clean_path.startswith("storage/"):
+        rel_sub = clean_path[len("storage/"):]
+        target_file = os.path.join(settings.STORAGE_DIR, rel_sub)
+    else:
+        target_file = os.path.join(settings.STORAGE_DIR, clean_path)
+    
+    if not os.path.exists(target_file):
+        # Also try direct uploaded_images or processed_images subdirectories
+        direct_proc = os.path.join(settings.PROCESSED_DIR, os.path.basename(clean_path))
+        direct_upl = os.path.join(settings.UPLOAD_DIR, os.path.basename(clean_path))
+        if os.path.exists(direct_proc):
+            target_file = direct_proc
+        elif os.path.exists(direct_upl):
+            target_file = direct_upl
+        elif os.path.exists(path):
+            target_file = path
+        else:
+            raise HTTPException(status_code=404, detail=f"Inspection image not found: '{path}'")
+    
+    media_type = "image/png" if target_file.lower().endswith(".png") else "image/jpeg"
+    return FileResponse(target_file, media_type=media_type)
+
+@router.get("/{inspection_id}/image")
+async def get_inspection_image_by_id(
+    inspection_id: str,
+    type: str = Query("annotated", description="Image type: 'annotated', 'original', or 'cropped_roi'"),
+    db: Session = Depends(get_db)
+):
+    """Serve the inspection image directly by inspection ID"""
+    r = get_inspection_by_id(db, inspection_id)
+    if not r:
+        raise HTTPException(status_code=404, detail=f"Inspection record '{inspection_id}' not found")
+    
+    target_path = r.annotated_image
+    if type == "original" and r.original_image:
+        target_path = r.original_image
+    elif type == "cropped_roi" and r.cropped_roi:
+        target_path = r.cropped_roi
+    
+    if not target_path:
+        raise HTTPException(status_code=404, detail=f"Image type '{type}' not available for '{inspection_id}'")
+    
+    return await get_inspection_image_by_path(target_path)

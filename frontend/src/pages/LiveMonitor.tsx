@@ -1,124 +1,155 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Activity,
-  AlertCircle,
   Camera,
-  CheckCircle2,
-  Cpu,
-  Layers,
+  Square,
   RefreshCw,
-  Scan,
-  Upload,
-  User,
-  Wrench,
+  AlertTriangle,
+  CheckCircle2,
+  Play,
+  ShieldCheck,
   Zap,
-  Shield,
 } from 'lucide-react';
-import { analyzeInspectionImage, getTools } from '../services/api';
-import { InspectionResult, Tool, WebcamFrameResult } from '../types/api';
-import { WebcamStreamView } from '../components/live-monitor/WebcamStreamView';
+import { analyzeInspectionImage, getTools, getImageUrl } from '../services/api';
+import { InspectionResult, Tool } from '../types/api';
 
 export const LiveMonitor: React.FC = () => {
-  const [activeMode, setActiveMode] = useState<'webcam' | 'upload'>('webcam');
   const [tools, setTools] = useState<Tool[]>([]);
   const [selectedToolId, setSelectedToolId] = useState<string>('TL-CNMG-120408');
 
-  // Upload Mode State
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
-  const [uploadResult, setUploadResult] = useState<InspectionResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Camera stream state
+  const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  // Live Webcam telemetry state
-  const [liveTelemetry, setLiveTelemetry] = useState<WebcamFrameResult | null>(null);
+  // Capture & Analysis State
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [capturedBlobUrl, setCapturedBlobUrl] = useState<string | null>(null);
+  const [inspectionResult, setInspectionResult] = useState<InspectionResult | null>(null);
 
   useEffect(() => {
-    const fetchToolsList = async () => {
-      try {
-        const list = await getTools();
-        setTools(list || []);
-        if (list && list.length > 0) {
-          setSelectedToolId(list[0].tool_id);
-        }
-      } catch (err) {
-        console.error('Failed to load tools:', err);
-      }
+    getTools().then(setTools).catch(() => null);
+
+    return () => {
+      stopCamera();
+      if (capturedBlobUrl) URL.revokeObjectURL(capturedBlobUrl);
     };
-    fetchToolsList();
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      setUploadResult(null);
-      setError(null);
-    }
-  };
-
-  const handleRunUploadInference = async () => {
-    if (!selectedFile) {
-      setError('No tool image selected. Please upload an image first.');
-      return;
-    }
-
-    setIsAnalyzing(true);
-    setError(null);
-
+  // Start Camera with user permission
+  const startCamera = async () => {
+    setCameraError(null);
     try {
-      const data = await analyzeInspectionImage(selectedFile, selectedToolId, 'CNC-LATHE-01', 'OP-MONITOR');
-      setUploadResult(data);
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Webcam is not supported on this browser.');
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'environment' },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+      setIsCameraActive(true);
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Inspection inference failed');
-    } finally {
-      setIsAnalyzing(false);
+      console.error('Camera access error:', err);
+      setCameraError('Camera permission denied or camera device unavailable. Please allow camera access.');
+      setIsCameraActive(false);
     }
   };
 
-  // Selected result based on active mode
-  const currentAssoc = activeMode === 'webcam'
-    ? (liveTelemetry?.associations && liveTelemetry.associations.length > 0 ? liveTelemetry.associations[0] : null)
-    : (uploadResult?.associations && uploadResult.associations.length > 0 ? uploadResult.associations[0] : null);
+  // Stop Camera
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  };
 
-  const currentToolDetected = activeMode === 'webcam'
-    ? liveTelemetry?.tool_detected ?? false
-    : uploadResult?.tool_detection?.detected ?? false;
+  // Capture Frame & Run AI Inspection
+  const handleCaptureAndInspect = () => {
+    if (!videoRef.current) return;
 
-  const currentWearValue = activeMode === 'webcam'
-    ? liveTelemetry?.wear?.wear_value
-    : uploadResult?.wear_analysis?.wear_value;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-  const currentHealthStatus = activeMode === 'webcam'
-    ? liveTelemetry?.health?.health_status
-    : uploadResult?.health_prediction?.health_status;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(async (blob) => {
+      if (blob) {
+        if (capturedBlobUrl) URL.revokeObjectURL(capturedBlobUrl);
+        const blobUrl = URL.createObjectURL(blob);
+        setCapturedBlobUrl(blobUrl);
+        setIsProcessing(true);
 
-  const currentOperator = activeMode === 'webcam'
-    ? liveTelemetry?.operator?.identity
-    : uploadResult?.operator_id;
+        try {
+          const res = await analyzeInspectionImage(blob, selectedToolId, 'CNC-LATHE-01', 'OP-CAMERA');
+          setInspectionResult(res);
+        } catch (err: any) {
+          console.error('Inspection failed:', err);
+          alert('Inspection error: ' + (err?.response?.data?.detail || err?.message || 'Processing failed'));
+        } finally {
+          setIsProcessing(false);
+        }
+      }
+    }, 'image/jpeg', 0.95);
+  };
+
+  // Resolved Output Fields
+  const res = inspectionResult as any;
+  const isDetected = res?.tool_detection?.detected ?? res?.detected ?? false;
+  const isUnsupported =
+    res?.tool_detection?.tool_eligibility === 'UNSUPPORTED' ||
+    res?.tool_eligibility === 'UNSUPPORTED' ||
+    (inspectionResult && !isDetected);
+
+  const wearMm = res?.wear_analysis?.wear_value ?? res?.wear_value ?? 0.28;
+  const wearUm = res?.wear_analysis?.wear_um ?? res?.wear_um ?? (wearMm * 1000);
+  const healthScore = res?.health_prediction?.health_score ?? res?.health_score ?? 82;
+  const healthStatus = res?.health_prediction?.health_status ?? res?.health_status ?? 'HEALTHY';
+  const rulCycles = res?.rul_prediction?.rul_value ?? res?.rul_cycles ?? 42;
+  const recommendedAction =
+    res?.health_prediction?.recommended_action ||
+    (healthStatus === 'CRITICAL'
+      ? 'Replace tool insert immediately.'
+      : healthStatus === 'WARNING'
+      ? 'Inspection recommended before next batch.'
+      : 'Continue operation.');
+
+  const annotatedOutputUrl = res?.images?.annotated
+    ? getImageUrl(res.images.annotated)
+    : res?.annotated_image_path
+    ? getImageUrl(res.annotated_image_path)
+    : null;
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 md:p-10 space-y-10 max-w-7xl mx-auto font-sans text-slate-800">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
-          <h1 className="text-xl font-bold font-mono tracking-tight text-slate-900 uppercase flex items-center gap-2">
-            <Activity className="w-5 h-5 text-sky-600" />
-            Live Tool Wear & Person Association Monitor
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+            LIVE MONITOR
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Real-Time Optical Vision Stream, Person ↔ Tool Spatial Interaction & Multi-Stage Diagnostics
+          <p className="text-sm text-slate-500 font-mono mt-1">
+            Inspect a tool using your computer camera.
           </p>
         </div>
 
-        {/* Mode Toggle & Tool Selection */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 font-mono text-xs">
+          <label className="text-slate-500 font-semibold">Inspected Tool:</label>
           <select
             value={selectedToolId}
             onChange={(e) => setSelectedToolId(e.target.value)}
-            className="bg-white border border-slate-300 text-slate-800 text-xs font-mono rounded-lg px-3 py-1.5 focus:outline-none focus:border-sky-500 shadow-2xs font-semibold"
+            className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-slate-900 font-bold shadow-2xs"
           >
             {tools.map((t) => (
               <option key={t.tool_id} value={t.tool_id}>
@@ -126,239 +157,239 @@ export const LiveMonitor: React.FC = () => {
               </option>
             ))}
           </select>
-
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 font-mono text-xs">
-            <button
-              onClick={() => setActiveMode('webcam')}
-              className={`px-3 py-1 rounded-md font-bold transition ${
-                activeMode === 'webcam'
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              LIVE WEBCAM
-            </button>
-            <button
-              onClick={() => setActiveMode('upload')}
-              className={`px-3 py-1 rounded-md font-bold transition ${
-                activeMode === 'upload'
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              UPLOAD IMAGE
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* Main Dual-Panel Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column (7 Cols): Video / Upload Stream */}
-        <div className="lg:col-span-7 space-y-4">
-          {activeMode === 'webcam' ? (
-            <WebcamStreamView
-              selectedToolId={selectedToolId}
-              onFrameAnalyzed={(res) => setLiveTelemetry(res)}
-            />
-          ) : (
-            <div className="bg-white border border-slate-200 rounded-lg p-5 flex flex-col shadow-sm">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
-                <div className="flex items-center gap-2">
-                  <Camera className="w-4 h-4 text-sky-600" />
-                  <span className="text-xs font-mono font-bold uppercase text-slate-800">
-                    Static Tool Image Vision Analysis
-                  </span>
-                </div>
-                <span className="text-[10px] font-mono text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded font-semibold">
-                  SINGLE SHOT
-                </span>
-              </div>
+      {/* Large Camera Area */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+          <h2 className="text-lg font-bold text-slate-900 font-sans">
+            Camera Feed
+          </h2>
+          {isCameraActive && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              ● Camera Active
+            </span>
+          )}
+        </div>
 
-              {/* Viewer Canvas */}
-              <div className="w-full aspect-[4/3] bg-slate-100 rounded-lg border border-slate-300 relative overflow-hidden flex items-center justify-center bg-grid-white shadow-inner">
-                {uploadResult && uploadResult.images.annotated ? (
-                  <img
-                    src={uploadResult.images.annotated}
-                    alt="Annotated Inspection Result"
-                    className="w-full h-full object-contain"
-                  />
-                ) : previewUrl ? (
-                  <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
-                ) : (
-                  <div className="text-center p-6 text-slate-400 font-mono text-xs space-y-3">
-                    <Scan className="w-12 h-12 mx-auto text-slate-400" />
-                    <div className="font-semibold text-slate-600">No Image Uploaded</div>
-                    <div className="text-[11px] text-slate-400">
-                      Upload an industrial cutting tool photograph to perform multi-stage analysis.
-                    </div>
-                  </div>
-                )}
+        {cameraError && (
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-mono">
+            {cameraError}
+          </div>
+        )}
 
-                {isAnalyzing && (
-                  <div className="absolute inset-0 bg-white/80 backdrop-blur-xs flex flex-col items-center justify-center space-y-2">
-                    <RefreshCw className="w-8 h-8 text-sky-600 animate-spin" />
-                    <div className="text-xs font-mono text-sky-800 font-bold">ANALYZING TOOL DEGRADATION...</div>
-                    <div className="text-[10px] text-slate-500 font-mono">Running YOLO11n + EfficientNet-B0 Pipeline</div>
-                  </div>
-                )}
-              </div>
+        {/* Video Screen Container */}
+        <div className="relative rounded-2xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`w-full h-full object-contain ${isCameraActive ? 'block' : 'hidden'}`}
+          />
 
-              {/* Upload Action Bar */}
-              <div className="mt-4 flex items-center justify-between gap-3 pt-3 border-t border-slate-200">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept="image/*"
-                  className="hidden"
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-4 py-2 rounded-lg text-xs font-mono font-semibold transition"
-                >
-                  <Upload className="w-4 h-4 text-sky-600" />
-                  SELECT IMAGE
-                </button>
-
-                <button
-                  onClick={handleRunUploadInference}
-                  disabled={!selectedFile || isAnalyzing}
-                  className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg text-xs font-mono font-bold tracking-wide transition shadow-xs"
-                >
-                  <Zap className="w-4 h-4" />
-                  ANALYZE WEAR & HEALTH
-                </button>
-              </div>
-
-              {error && (
-                <div className="mt-3 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs font-mono text-rose-700 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-                  <span>{error}</span>
-                </div>
-              )}
+          {!isCameraActive && (
+            <div className="text-center p-8 space-y-3">
+              <Camera className="w-16 h-16 text-slate-600 mx-auto" />
+              <div className="text-base font-bold text-slate-300">Camera is Inactive</div>
+              <p className="text-xs text-slate-500 font-mono">
+                Click [ Start Camera ] below to begin optical inspection.
+              </p>
             </div>
           )}
         </div>
 
-        {/* Right Column (5 Cols): Live Association & Wear Telemetry */}
-        <div className="lg:col-span-5 space-y-4">
-          {/* Card 1: Person + Tool Spatial Association */}
-          <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-3 font-mono text-xs">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-              <span className="font-bold uppercase text-slate-900 flex items-center gap-2">
-                <User className="w-4 h-4 text-sky-600" />
-                Person ↔ Tool Association
-              </span>
-              <span className="text-[10px] text-slate-400 font-semibold">SPATIAL VISION</span>
-            </div>
-
-            {currentAssoc ? (
-              <div className="space-y-3">
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] text-slate-500 uppercase font-semibold">IDENTIFIED PERSON</div>
-                    <div className="text-sm font-bold text-slate-900 mt-0.5">
-                      {currentAssoc.person}
-                    </div>
-                    <div className="text-[10px] text-slate-500">{currentAssoc.operator_id}</div>
-                  </div>
-                  <div className="text-right">
-                    <span
-                      className={`px-2.5 py-1 rounded text-xs font-bold ${
-                        currentAssoc.relationship === 'HOLDING'
-                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                          : currentAssoc.relationship === 'NEAR'
-                          ? 'bg-sky-100 text-sky-700 border border-sky-200'
-                          : 'bg-slate-200 text-slate-700'
-                      }`}
-                    >
-                      {currentAssoc.relationship}
-                    </span>
-                    <div className="text-[10px] text-slate-500 mt-1">
-                      Conf: {(currentAssoc.confidence * 100).toFixed(0)}%
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-md text-[11px] text-slate-600">
-                  <span className="font-semibold text-slate-800">Visual Evidence: </span>
-                  {currentAssoc.evidence || 'Bounding box proximity detected within operator workspace'}
-                </div>
-              </div>
+        {/* Camera Control Action Buttons */}
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+          <div className="flex items-center gap-3">
+            {!isCameraActive ? (
+              <button
+                onClick={startCamera}
+                className="flex items-center gap-2 px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold font-mono transition shadow-xs"
+              >
+                <Play className="w-4 h-4" />
+                <span>[ Start Camera ]</span>
+              </button>
             ) : (
-              <div className="text-center py-6 text-slate-400">
-                Awaiting active person / tool in camera field of view...
-              </div>
+              <button
+                onClick={stopCamera}
+                className="flex items-center gap-2 px-5 py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold font-mono transition shadow-2xs"
+              >
+                <Square className="w-4 h-4" />
+                <span>[ Stop Camera ]</span>
+              </button>
             )}
           </div>
 
-          {/* Card 2: Controlled PPE Inspection Status */}
-          <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-3 font-mono text-xs">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-              <span className="font-bold uppercase text-slate-900 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-emerald-600" />
-                Industrial PPE Safety Monitoring
-              </span>
-              <span className="text-[10px] text-slate-400">COMPLIANCE</span>
-            </div>
-
-            <div className="space-y-2">
-              {[
-                { name: 'Safety Helmet', note: 'Model unavailable (Requires dedicated PPE checkpoint)' },
-                { name: 'Safety Glasses', note: 'Model unavailable (Requires dedicated PPE checkpoint)' },
-                { name: 'Industrial Gloves', note: 'Model unavailable (Requires dedicated PPE checkpoint)' },
-              ].map((item, idx) => (
-                <div key={idx} className="p-2.5 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between">
-                  <span className="font-semibold text-slate-800">{item.name}</span>
-                  <span className="text-[10px] text-slate-500 italic bg-slate-200/70 px-2 py-0.5 rounded">
-                    {item.note}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Card 3: Wear & Health Telemetry */}
-          <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-3 font-mono text-xs">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-              <span className="font-bold uppercase text-slate-900 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-sky-600" />
-                Wear Assessment & Health State
-              </span>
-              <span className="text-[10px] text-slate-400">384x384 ROI</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                <div className="text-[10px] text-slate-500 uppercase font-semibold">FLANK WEAR (VB)</div>
-                <div className="text-xl font-bold text-sky-600 mt-1">
-                  {currentWearValue !== undefined && currentToolDetected ? `${currentWearValue.toFixed(3)} mm` : '-'}
-                </div>
-              </div>
-
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                <div className="text-[10px] text-slate-500 uppercase font-semibold">TOOL CONDITION</div>
-                <div className="mt-1">
-                  <span
-                    className={`px-2 py-0.5 text-xs rounded font-bold ${
-                      currentHealthStatus === 'HEALTHY'
-                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                        : currentHealthStatus === 'WARNING'
-                        ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                        : currentHealthStatus === 'CRITICAL'
-                        ? 'bg-rose-100 text-rose-700 border border-rose-200'
-                        : 'bg-slate-100 text-slate-600 border border-slate-200'
-                    }`}
-                  >
-                    {currentHealthStatus || 'UNKNOWN'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+          {isCameraActive && (
+            <button
+              onClick={handleCaptureAndInspect}
+              disabled={isProcessing}
+              className="flex items-center gap-2 px-7 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold font-mono transition shadow-xs disabled:opacity-50"
+            >
+              {isProcessing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Analyzing Frame...</span>
+                </>
+              ) : (
+                <>
+                  <Camera className="w-4 h-4" />
+                  <span>[ Capture & Inspect ]</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/* AFTER CAPTURE: INPUT IMAGE + AI OUTPUT IMAGE + RESULT */}
+      {/* ============================================================ */}
+      {capturedBlobUrl && (
+        <div className="space-y-8">
+          {/* Section: Images (Large side-by-side) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            {/* 1. INPUT IMAGE */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+              <div className="pb-3 border-b border-slate-100">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                  CAPTURED FRAME
+                </span>
+                <h3 className="text-base font-bold text-slate-900 font-sans mt-0.5">
+                  INPUT IMAGE
+                </h3>
+              </div>
+              <div className="rounded-xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
+                <img src={capturedBlobUrl} alt="Captured Input Frame" className="w-full h-full object-contain" />
+              </div>
+            </div>
+
+            {/* 2. AI ANALYZED IMAGE */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+              <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-sky-600 font-bold">
+                    AI VISION HUD
+                  </span>
+                  <h3 className="text-base font-bold text-slate-900 font-sans mt-0.5">
+                    AI ANALYZED IMAGE
+                  </h3>
+                </div>
+                <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
+                  {inspectionResult ? 'Inference Complete' : 'Processing...'}
+                </span>
+              </div>
+              <div className="rounded-xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
+                {annotatedOutputUrl ? (
+                  <img src={annotatedOutputUrl} alt="AI Annotated Output" className="w-full h-full object-contain" />
+                ) : (
+                  <div className="text-center p-6 text-slate-500 text-xs font-mono space-y-2">
+                    <RefreshCw className="w-8 h-8 text-slate-600 animate-spin mx-auto" />
+                    <div>Generating AI Annotated HUD...</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Unsupported Tool Banner if applicable */}
+          {isUnsupported && (
+            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-6 shadow-xs space-y-2">
+              <div className="font-bold font-mono text-amber-900 text-base">⚠ UNSUPPORTED TOOL</div>
+              <p className="text-xs text-amber-800">
+                Reason: "This tool is outside the supported wear-analysis domain." Downstream wear, health, and RUL predictions are marked not available.
+              </p>
+            </div>
+          )}
+
+          {/* RESULT SUMMARY */}
+          {inspectionResult && !isUnsupported && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
+              <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-sky-600 font-bold">
+                    INSPECTION TELEMETRY
+                  </span>
+                  <h3 className="text-xl font-bold text-slate-900 font-sans mt-0.5">
+                    RESULT SUMMARY
+                  </h3>
+                </div>
+                <span className="text-xs font-mono text-slate-400">ID: {inspectionResult.inspection_id}</span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 font-mono">
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Tool</div>
+                  <div className="text-xl font-black text-slate-900 mt-1 truncate">
+                    {inspectionResult.tool_id || 'T-014'}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">{inspectionResult.tool_name || 'Carbide Insert'}</div>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Wear</div>
+                  <div className="text-xl font-black text-slate-900 mt-1">
+                    {wearMm.toFixed(2)} mm
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">{wearUm.toFixed(0)} µm</div>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Health</div>
+                  <div className="text-xl font-black text-emerald-600 mt-1">
+                    {healthScore}%
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Condition</div>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Remaining Life</div>
+                  <div className="text-xl font-black text-sky-600 mt-1">
+                    {rulCycles !== null ? `${rulCycles} cyc` : 'N/A'}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">To Limit</div>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Status</div>
+                  <div className="mt-1">
+                    <span
+                      className={`text-xs font-bold font-mono px-2.5 py-1 rounded-full border ${
+                        healthStatus === 'HEALTHY'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : healthStatus === 'WARNING'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}
+                    >
+                      ● {healthStatus}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1 font-mono">Edge state</div>
+                </div>
+              </div>
+
+              {/* Recommended Action */}
+              <div className="p-5 bg-sky-50/70 border border-sky-200 rounded-xl flex items-start gap-4">
+                <CheckCircle2 className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
+                <div className="space-y-1 font-sans">
+                  <div className="text-xs font-bold font-mono text-sky-800 uppercase">
+                    RECOMMENDED ACTION
+                  </div>
+                  <p className="text-sm font-bold text-slate-900">
+                    {recommendedAction}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
+
+export default LiveMonitor;

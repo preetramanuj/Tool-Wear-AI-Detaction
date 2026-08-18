@@ -20,15 +20,31 @@ const apiClient = axios.create({
   timeout: 45000,
 });
 
+// Helper for rendering image URLs reliably across browser environments
+export const getImageUrl = (imagePath?: string | null): string => {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('blob:') || imagePath.startsWith('data:') || imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  const clean = imagePath.replace(/\\/g, '/');
+  if (clean.startsWith('/storage/')) return clean;
+  if (clean.startsWith('storage/')) return `/${clean}`;
+  return `/api/v1/inspection/image?path=${encodeURIComponent(clean)}`;
+};
+
 // --- Inspection API ---
 export const analyzeInspectionImage = async (
-  file: File,
+  file: File | Blob,
   toolId?: string,
   machineId: string = 'CNC-01',
   operatorId: string = 'OP-DEFAULT'
 ): Promise<InspectionResult> => {
   const formData = new FormData();
-  formData.append('image', file);
+  if (file instanceof File) {
+    formData.append('image', file);
+  } else {
+    formData.append('image', file, 'captured_frame.jpg');
+  }
   if (toolId) formData.append('tool_id', toolId);
   formData.append('machine_id', machineId);
   formData.append('operator_id', operatorId);
@@ -265,6 +281,24 @@ export const testFullPipeline = async (file?: File, toolId: string = 'TL-CNMG-12
 
   const response = await apiClient.post('/models/pipeline-test', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+// --- Reports API ---
+export const generateReport = async (reportType: string, toolId?: string, format: string = 'json'): Promise<any> => {
+  const response = await apiClient.post('/reports/generate', {
+    report_type: reportType,
+    tool_id: toolId,
+    format: format,
+  });
+  return response.data;
+};
+
+export const exportReportFile = async (reportType: string, format: string, toolId?: string): Promise<Blob> => {
+  const response = await apiClient.get('/reports/export', {
+    params: { report_type: reportType, format, tool_id: toolId },
+    responseType: 'blob',
   });
   return response.data;
 };

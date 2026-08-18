@@ -32,6 +32,7 @@ from backend.api.routes.insights_routes import router as insights_router
 from backend.api.routes.economic_routes import router as economic_router
 from backend.api.routes.downtime_routes import router as downtime_router
 from backend.api.routes.root_cause_routes import router as root_cause_router
+from backend.api.routes.reports_routes import router as reports_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -81,6 +82,8 @@ if os.path.exists(settings.STORAGE_DIR):
 
 # Register All API Routers
 app.include_router(inspection_router, prefix=settings.API_V1_STR)
+app.include_router(inspection_router, prefix="/api/v1/inspections")
+app.include_router(inspection_router, prefix="/api/inspections")
 app.include_router(tool_detection_router, prefix=settings.API_V1_STR)
 app.include_router(wear_analysis_router, prefix=settings.API_V1_STR)
 app.include_router(health_prediction_router, prefix=settings.API_V1_STR)
@@ -97,6 +100,7 @@ app.include_router(insights_router, prefix=settings.API_V1_STR)
 app.include_router(economic_router, prefix=settings.API_V1_STR)
 app.include_router(downtime_router, prefix=settings.API_V1_STR)
 app.include_router(root_cause_router, prefix=settings.API_V1_STR)
+app.include_router(reports_router, prefix=settings.API_V1_STR)
 
 @app.get("/health", tags=["System"])
 def health_check():

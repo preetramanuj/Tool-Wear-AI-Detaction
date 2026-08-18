@@ -144,3 +144,28 @@ def test_tool_eligibility_protection(client):
     assert data["tool_detection"]["detected"] is False
     assert data["wear_analysis"]["status"] == "SKIPPED"
     assert data["health_prediction"]["status"] == "SKIPPED"
+
+def test_reports_generation_and_exports(client):
+    # 1. JSON report data
+    res_json = client.get(f"{settings.API_V1_STR}/reports/generate?report_type=COMPREHENSIVE_AUDIT")
+    assert res_json.status_code == 200
+    assert res_json.json()["success"] is True
+    assert "kpis" in res_json.json()["data"]
+
+    # 2. PDF export
+    res_pdf = client.get(f"{settings.API_V1_STR}/reports/export/pdf?report_type=COMPREHENSIVE_AUDIT")
+    assert res_pdf.status_code == 200
+    assert res_pdf.headers.get("content-type") == "application/pdf"
+    assert len(res_pdf.content) > 1000
+
+    # 3. Word DOCX export
+    res_docx = client.get(f"{settings.API_V1_STR}/reports/export/docx?report_type=COMPREHENSIVE_AUDIT")
+    assert res_docx.status_code == 200
+    assert "document" in res_docx.headers.get("content-type", "")
+    assert len(res_docx.content) > 5000
+
+    # 4. CSV export
+    res_csv = client.get(f"{settings.API_V1_STR}/reports/export/csv?report_type=COMPREHENSIVE_AUDIT")
+    assert res_csv.status_code == 200
+    assert "text/csv" in res_csv.headers.get("content-type", "")
+
