@@ -263,3 +263,48 @@ class EconomicParameters(Base):
             "currency_symbol": self.currency_symbol,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+
+class ProcessOptimization(Base):
+    __tablename__ = "process_optimizations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    optimization_id = Column(String(50), unique=True, index=True, nullable=False)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    tool_id = Column(String(50), index=True, nullable=False)
+    tool_name = Column(String(100), default="Standard CNC Insert")
+    machine_id = Column(String(50), index=True, default="CNC-LATHE-01")
+    material = Column(String(100), default="CK45 / Alloy Steel")
+    objective = Column(String(50), default="MAXIMIZE_TOOL_LIFE")
+    current_parameters = Column(Text, nullable=False)  # JSON string {"n": 2547, "fz": 0.05, "Ap": 0.5}
+    recommended_parameters = Column(Text, nullable=False)  # JSON string {"n": 3705, "fz": 0.045, "Ap": 1.0}
+    expected_impact = Column(Text, nullable=True)  # JSON string
+    optimization_score = Column(Float, nullable=True)
+    status = Column(String(50), default="RECOMMENDATION_GENERATED")
+    explanation = Column(Text, nullable=True)
+    approved_by_operator = Column(Boolean, default=False)
+    applied = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    def to_dict(self):
+        import json
+        return {
+            "id": self.id,
+            "optimization_id": self.optimization_id,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "tool_id": self.tool_id,
+            "tool_name": self.tool_name,
+            "machine_id": self.machine_id,
+            "material": self.material,
+            "objective": self.objective,
+            "current_parameters": json.loads(self.current_parameters) if self.current_parameters else {},
+            "recommended_parameters": json.loads(self.recommended_parameters) if self.recommended_parameters else {},
+            "expected_impact": json.loads(self.expected_impact) if self.expected_impact else {},
+            "optimization_score": self.optimization_score,
+            "status": self.status,
+            "explanation": self.explanation,
+            "approved_by_operator": self.approved_by_operator,
+            "applied": self.applied,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+

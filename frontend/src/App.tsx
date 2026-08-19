@@ -16,6 +16,7 @@ import { ManufacturingInsights } from './pages/ManufacturingInsights';
 import { EconomicImpact } from './pages/EconomicImpact';
 import { DowntimeAvoided } from './pages/DowntimeAvoided';
 import { RootCauseAnalysis } from './pages/RootCauseAnalysis';
+import { ProcessOptimization } from './pages/ProcessOptimization';
 import { getAlerts } from './services/api';
 
 export const App: React.FC = () => {
@@ -55,6 +56,8 @@ export const App: React.FC = () => {
               <Route path="/economics" element={<EconomicImpact />} />
               <Route path="/downtime" element={<DowntimeAvoided />} />
               <Route path="/root-cause" element={<RootCauseAnalysis />} />
+              <Route path="/optimization" element={<ProcessOptimization />} />
+              <Route path="/process-optimization" element={<ProcessOptimization />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/models" element={<Models />} />
               <Route path="/face-detection" element={<FaceDetection />} />

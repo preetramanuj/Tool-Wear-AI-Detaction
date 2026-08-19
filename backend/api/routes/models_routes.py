@@ -13,6 +13,7 @@ from backend.services.wear_analysis_service import wear_analysis_service
 from backend.services.health_prediction_service import health_prediction_service
 from backend.services.face_detection_service import face_detection_service
 from backend.services.rul_service import rul_service
+from backend.services.process_optimization_service import process_optimization_service
 
 router = APIRouter(prefix="/models", tags=["AI Models Management & Diagnostics"])
 
@@ -74,6 +75,18 @@ async def get_all_models_status():
                 "device": "CPU / GPU",
                 "resolution": [89, 1],
                 "status": "ONLINE" if rul_service.is_loaded() else "OFFLINE",
+            },
+            {
+                "id": "model-10",
+                "name": "Model 10: Automatic Process Parameter Optimization",
+                "task": "Constrained Process Parameter Optimization & Cutting Regime Recommendation",
+                "framework": "Empirical Scoring Engine (Normalized Wear-Productivity Tradeoff)",
+                "weights_path": process_optimization_service.model_path,
+                "weights_file": os.path.basename(process_optimization_service.model_path),
+                "loaded": process_optimization_service.is_loaded(),
+                "device": "CPU",
+                "resolution": [3, 1],
+                "status": "ONLINE" if process_optimization_service.is_loaded() else "OFFLINE",
             },
             {
                 "id": "model-4",

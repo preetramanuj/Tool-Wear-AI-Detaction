@@ -11,6 +11,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Wrench,
+  Sliders,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -599,7 +600,7 @@ export const Dashboard: React.FC = () => {
           Quick Actions
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 font-mono">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-5 font-mono">
           <Link
             to="/inspections"
             className="flex items-center justify-center gap-2.5 p-5 bg-sky-600 hover:bg-sky-700 text-white rounded-2xl font-bold text-xs transition shadow-xs"
@@ -609,11 +610,11 @@ export const Dashboard: React.FC = () => {
           </Link>
 
           <Link
-            to="/live-monitor"
+            to="/optimization"
             className="flex items-center justify-center gap-2.5 p-5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 rounded-2xl font-bold text-xs transition shadow-2xs"
           >
-            <Eye className="w-4 h-4 text-slate-600" />
-            <span>[ Live Monitor ]</span>
+            <Sliders className="w-4 h-4 text-sky-600" />
+            <span>[ Optimize Process ]</span>
           </Link>
 
           <Link
@@ -622,6 +623,14 @@ export const Dashboard: React.FC = () => {
           >
             <Wrench className="w-4 h-4 text-slate-600" />
             <span>[ Tool Inventory ]</span>
+          </Link>
+
+          <Link
+            to="/insights"
+            className="flex items-center justify-center gap-2.5 p-5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 rounded-2xl font-bold text-xs transition shadow-2xs"
+          >
+            <Eye className="w-4 h-4 text-slate-600" />
+            <span>[ Mfg Insights ]</span>
           </Link>
         </div>
       </div>

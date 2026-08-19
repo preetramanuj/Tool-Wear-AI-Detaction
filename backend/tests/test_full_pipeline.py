@@ -38,7 +38,7 @@ def test_models_status(client):
     data = res.json()
     assert data["success"] is True
     assert data["models_loaded_count"] >= 4
-    assert len(data["models"]) == 5
+    assert len(data["models"]) >= 5
     
     # Verify Model 2 is Phase3BGatedModel
     m2 = next(m for m in data["models"] if m["id"] == "model-2")

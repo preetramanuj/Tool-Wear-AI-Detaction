@@ -494,7 +494,65 @@ export interface RootCauseReport {
   disclaimer: string;
 }
 
-// --- Pipeline Test Types ---
+// --- Model 10: Process Parameter Optimization Types ---
+export interface ProcessOptimizationParameters {
+  n: number;   // Spindle Speed RPM
+  fz: number;  // Feed rate mm/tooth
+  Ap: number;  // Depth of cut mm
+}
+
+export interface ExpectedImpact {
+  current_wear_rate_um_per_cycle: number;
+  recommended_wear_rate_um_per_cycle: number;
+  estimated_wear_reduction_percent: number;
+  current_mrr: number;
+  recommended_mrr: number;
+  estimated_mrr_change_percent: number;
+  current_projected_rul_cycles: number;
+  recommended_projected_rul_cycles: number;
+  estimated_cycle_life_gain: number;
+  provenance: string;
+}
+
+export interface ProcessOptimizationResult {
+  success: boolean;
+  optimization_id: string;
+  timestamp: string;
+  tool_id: string;
+  tool_name: string;
+  machine_id: string;
+  material: string;
+  objective: 'MAXIMIZE_TOOL_LIFE' | 'MAXIMIZE_PRODUCTIVITY' | 'BALANCED' | string;
+  current_parameters: ProcessOptimizationParameters;
+  recommended_parameters: ProcessOptimizationParameters;
+  expected_impact: ExpectedImpact;
+  optimization_score?: number;
+  ranked_candidates_count?: number;
+  explanation: string;
+  status: string;
+  safety_notice: string;
+}
+
+export interface ProcessOptimizationRecord {
+  id: number;
+  optimization_id: string;
+  timestamp: string;
+  tool_id: string;
+  tool_name: string;
+  machine_id: string;
+  material: string;
+  objective: string;
+  current_parameters: ProcessOptimizationParameters;
+  recommended_parameters: ProcessOptimizationParameters;
+  expected_impact?: ExpectedImpact;
+  optimization_score?: number;
+  status: string;
+  explanation?: string;
+  approved_by_operator: boolean;
+  applied: boolean;
+  created_at: string;
+}
+
 export interface PipelineTestResponse {
   success: boolean;
   pipeline: string;
@@ -531,3 +589,29 @@ export interface PipelineTestResponse {
     };
   };
 }
+
+export interface OptimizationConstraintsResponse {
+  success: boolean;
+  constraints: {
+    parameter_bounds: {
+      spindle_speed_rpm: { min: number; max: number; default: number; unit: string };
+      feed_rate_fz: { min: number; max: number; default: number; unit: string };
+      depth_of_cut_ap: { min: number; max: number; default: number; unit: string };
+    };
+    hard_limits: {
+      max_tool_wear_um: number;
+      iso_critical_limit_um: number;
+      min_rul_cycles: number;
+    };
+    supported_objectives: Array<{
+      id: string;
+      label: string;
+      description: string;
+    }>;
+    supported_materials: string[];
+    supported_machines: string[];
+  };
+}
+
+
+

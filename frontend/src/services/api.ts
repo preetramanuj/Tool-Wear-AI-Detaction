@@ -302,3 +302,34 @@ export const exportReportFile = async (reportType: string, format: string, toolI
   });
   return response.data;
 };
+
+// --- Model 10: Automatic Process Parameter Optimization API ---
+export const optimizeProcessParameters = async (payload: {
+  tool_id: string;
+  machine_id?: string;
+  material?: string;
+  objective?: string;
+  parameters?: { n: number; fz: number; Ap: number };
+  constraints?: Record<string, number>;
+}): Promise<any> => {
+  const response = await apiClient.post('/process-optimization/optimize', payload);
+  return response.data;
+};
+
+export const getOptimizationConstraints = async (): Promise<any> => {
+  const response = await apiClient.get('/process-optimization/constraints');
+  return response.data.constraints;
+};
+
+export const getOptimizationHistory = async (skip: number = 0, limit: number = 50, toolId?: string): Promise<any[]> => {
+  const response = await apiClient.get('/process-optimization/history', {
+    params: { skip, limit, tool_id: toolId },
+  });
+  return response.data.optimizations || [];
+};
+
+export const approveOptimizationRecommendation = async (optimizationId: string, approved: boolean = true): Promise<any> => {
+  const response = await apiClient.post(`/process-optimization/${optimizationId}/approve`, { approved });
+  return response.data;
+};
+

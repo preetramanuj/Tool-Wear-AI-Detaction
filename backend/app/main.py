@@ -33,6 +33,8 @@ from backend.api.routes.economic_routes import router as economic_router
 from backend.api.routes.downtime_routes import router as downtime_router
 from backend.api.routes.root_cause_routes import router as root_cause_router
 from backend.api.routes.reports_routes import router as reports_router
+from backend.api.routes.process_optimization_routes import router as process_optimization_router
+from backend.services.process_optimization_service import process_optimization_service
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -48,6 +50,7 @@ async def lifespan(app: FastAPI):
     print(f"• Model 3 (Health Predict): {'ONLINE' if health_prediction_service.is_loaded() else 'OFFLINE'}")
     print(f"• Model 6 (XGBoost RUL):    {'ONLINE' if rul_service.is_loaded() else 'OFFLINE'}")
     print(f"• Model 4 (Face Engine):    {'ONLINE' if face_detection_service.is_loaded() else 'OFFLINE'}")
+    print(f"• Model 10 (Process Opt):   {'ONLINE' if process_optimization_service.is_loaded() else 'OFFLINE'}")
     print(f"• Model 5 (Mfg Insights):   ONLINE")
     print(f"• Model 7 (Economic Dash):  ONLINE")
     print(f"• Model 8 (Downtime Avoid): ONLINE")
@@ -101,6 +104,8 @@ app.include_router(economic_router, prefix=settings.API_V1_STR)
 app.include_router(downtime_router, prefix=settings.API_V1_STR)
 app.include_router(root_cause_router, prefix=settings.API_V1_STR)
 app.include_router(reports_router, prefix=settings.API_V1_STR)
+app.include_router(process_optimization_router, prefix=settings.API_V1_STR)
+app.include_router(process_optimization_router, prefix="/api")
 
 @app.get("/health", tags=["System"])
 def health_check():
@@ -115,6 +120,7 @@ def health_check():
             "model_3_health_prediction": health_prediction_service.is_loaded(),
             "model_6_rul_prediction": rul_service.is_loaded(),
             "model_4_face_detection": face_detection_service.is_loaded(),
+            "model_10_process_optimization": process_optimization_service.is_loaded(),
         }
     }
 

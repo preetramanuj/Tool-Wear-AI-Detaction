@@ -13,6 +13,7 @@ from backend.database.models import (
     MaintenanceEvent,
     DowntimeEvent,
     EconomicParameters,
+    ProcessOptimization,
 )
 from backend.core.database import engine, Base
 
@@ -419,4 +420,39 @@ def update_economic_parameters(db: Session, param_data: dict) -> EconomicParamet
     db.commit()
     db.refresh(param)
     return param
+
+
+# --- Process Parameter Optimization CRUD ---
+def create_process_optimization(db: Session, opt_data: dict) -> ProcessOptimization:
+    import json
+    # Ensure JSON fields are stringified if passed as dicts
+    data_copy = dict(opt_data)
+    for json_field in ["current_parameters", "recommended_parameters", "expected_impact"]:
+        if json_field in data_copy and isinstance(data_copy[json_field], (dict, list)):
+            data_copy[json_field] = json.dumps(data_copy[json_field])
+            
+    opt = ProcessOptimization(**data_copy)
+    db.add(opt)
+    db.commit()
+    db.refresh(opt)
+    return opt
+
+def get_process_optimizations(db: Session, skip: int = 0, limit: int = 50, tool_id: Optional[str] = None):
+    query = db.query(ProcessOptimization)
+    if tool_id and tool_id != "ALL":
+        query = query.filter(ProcessOptimization.tool_id == tool_id)
+    return query.order_by(ProcessOptimization.timestamp.desc()).offset(skip).limit(limit).all()
+
+def get_process_optimization_by_id(db: Session, optimization_id: str) -> Optional[ProcessOptimization]:
+    return db.query(ProcessOptimization).filter(ProcessOptimization.optimization_id == optimization_id).first()
+
+def approve_process_optimization(db: Session, optimization_id: str, approved: bool = True) -> Optional[ProcessOptimization]:
+    opt = get_process_optimization_by_id(db, optimization_id)
+    if opt:
+        opt.approved_by_operator = approved
+        opt.status = "APPROVED_BY_OPERATOR" if approved else "REJECTED_BY_OPERATOR"
+        db.commit()
+        db.refresh(opt)
+    return opt
+
 
