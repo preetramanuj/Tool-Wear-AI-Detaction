@@ -292,7 +292,7 @@ export const generateReport = async (reportType: string, toolId?: string, format
     tool_id: toolId,
     format: format,
   });
-  return response.data;
+  return response.data.data || response.data;
 };
 
 export const exportReportFile = async (reportType: string, format: string, toolId?: string): Promise<Blob> => {
