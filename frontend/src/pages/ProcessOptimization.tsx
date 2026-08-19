@@ -129,9 +129,9 @@ export const ProcessOptimization: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-sky-100 text-sky-800 border border-sky-300">
+            {/* <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-sky-100 text-sky-800 border border-sky-300">
               MODEL 10
-            </span>
+            </span> */}
             <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
               PROCESS PARAMETER OPTIMIZATION
             </h1>
@@ -303,11 +303,10 @@ export const ProcessOptimization: React.FC = () => {
             <button
               type="button"
               onClick={() => setSelectedObjective('MAXIMIZE_TOOL_LIFE')}
-              className={`w-full text-left p-4 rounded-2xl border transition ${
-                selectedObjective === 'MAXIMIZE_TOOL_LIFE'
-                  ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-900'
-                  : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
+              className={`w-full text-left p-4 rounded-2xl border transition ${selectedObjective === 'MAXIMIZE_TOOL_LIFE'
+                ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-900'
+                : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
             >
               <div className="flex items-center justify-between font-bold text-sm">
                 <span>1. Maximize Tool Life</span>
@@ -322,11 +321,10 @@ export const ProcessOptimization: React.FC = () => {
             <button
               type="button"
               onClick={() => setSelectedObjective('MAXIMIZE_PRODUCTIVITY')}
-              className={`w-full text-left p-4 rounded-2xl border transition ${
-                selectedObjective === 'MAXIMIZE_PRODUCTIVITY'
-                  ? 'bg-sky-50 border-sky-500 ring-2 ring-sky-500/20 text-sky-900'
-                  : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
+              className={`w-full text-left p-4 rounded-2xl border transition ${selectedObjective === 'MAXIMIZE_PRODUCTIVITY'
+                ? 'bg-sky-50 border-sky-500 ring-2 ring-sky-500/20 text-sky-900'
+                : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
             >
               <div className="flex items-center justify-between font-bold text-sm">
                 <span>2. Maximize Productivity</span>
@@ -341,11 +339,10 @@ export const ProcessOptimization: React.FC = () => {
             <button
               type="button"
               onClick={() => setSelectedObjective('BALANCED')}
-              className={`w-full text-left p-4 rounded-2xl border transition ${
-                selectedObjective === 'BALANCED'
-                  ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500/20 text-indigo-900'
-                  : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
+              className={`w-full text-left p-4 rounded-2xl border transition ${selectedObjective === 'BALANCED'
+                ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500/20 text-indigo-900'
+                : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
             >
               <div className="flex items-center justify-between font-bold text-sm">
                 <span>3. Balanced Tradeoff</span>
@@ -386,7 +383,7 @@ export const ProcessOptimization: React.FC = () => {
             ) : (
               <>
                 <Play className="w-5 h-5" />
-                <span>[ Run Process Optimization ]</span>
+                <span> Run Process Optimization</span>
               </>
             )}
           </button>
@@ -610,11 +607,10 @@ export const ProcessOptimization: React.FC = () => {
                 <button
                   onClick={handleApprove}
                   disabled={isApproved}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition shadow-xs ${
-                    isApproved
-                      ? 'bg-emerald-600 text-white cursor-default'
-                      : 'bg-slate-900 hover:bg-slate-800 text-white'
-                  }`}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition shadow-xs ${isApproved
+                    ? 'bg-emerald-600 text-white cursor-default'
+                    : 'bg-slate-900 hover:bg-slate-800 text-white'
+                    }`}
                 >
                   {isApproved ? (
                     <>
@@ -695,11 +691,10 @@ export const ProcessOptimization: React.FC = () => {
                     </td>
                     <td className="p-4">
                       <span
-                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
-                          rec.approved_by_operator
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-sky-50 text-sky-700 border-sky-200'
-                        }`}
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${rec.approved_by_operator
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-sky-50 text-sky-700 border-sky-200'
+                          }`}
                       >
                         ● {rec.status}
                       </span>

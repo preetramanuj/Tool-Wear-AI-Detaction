@@ -77,7 +77,7 @@ export const Header: React.FC = () => {
           <Database className="w-3.5 h-3.5 text-amber-600" />
           <span className="text-[11px] font-mono text-slate-500 font-medium">DB:</span>
           <span className={`text-[11px] font-mono font-bold ${dbStatus === 'CONNECTED' ? 'text-emerald-700' : 'text-rose-600'}`}>
-            {dbStatus} (SQLite)
+            {dbStatus} (PostgreSQL)
           </span>
         </div>
 

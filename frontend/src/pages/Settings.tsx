@@ -105,41 +105,36 @@ export const Settings: React.FC = () => {
       <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 font-mono text-xs overflow-x-auto">
         <button
           onClick={() => setActiveTab('general')}
-          className={`px-4 py-2 rounded-xl font-bold transition ${
-            activeTab === 'general' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-          }`}
+          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'general' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
         >
           General
         </button>
         <button
           onClick={() => setActiveTab('thresholds')}
-          className={`px-4 py-2 rounded-xl font-bold transition ${
-            activeTab === 'thresholds' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-          }`}
+          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'thresholds' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
         >
           Thresholds
         </button>
         <button
           onClick={() => setActiveTab('notifications')}
-          className={`px-4 py-2 rounded-xl font-bold transition ${
-            activeTab === 'notifications' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-          }`}
+          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'notifications' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
         >
           Notifications
         </button>
         <button
           onClick={() => setActiveTab('models')}
-          className={`px-4 py-2 rounded-xl font-bold transition ${
-            activeTab === 'models' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-          }`}
+          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'models' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
         >
           Models
         </button>
         <button
           onClick={() => setActiveTab('system')}
-          className={`px-4 py-2 rounded-xl font-bold transition ${
-            activeTab === 'system' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-          }`}
+          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'system' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
         >
           System
         </button>
@@ -331,7 +326,7 @@ export const Settings: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
                 <div className="text-slate-400 font-bold uppercase text-[10px]">Database Engine</div>
-                <div className="text-base font-bold text-slate-900 mt-1">SQLite 3</div>
+                <div className="text-base font-bold text-slate-900 mt-1">PostgreSQL</div>
                 <div className="text-[10px] text-slate-500 mt-0.5">toolguard.db (Mounted)</div>
               </div>
 
