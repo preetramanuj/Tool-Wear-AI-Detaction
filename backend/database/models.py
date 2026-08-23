@@ -308,3 +308,97 @@ class ProcessOptimization(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
+
+class SensorReading(Base):
+    __tablename__ = "sensor_readings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    reading_id = Column(String(50), unique=True, index=True, nullable=False)
+    inspection_id = Column(String(50), index=True, nullable=True)
+    tool_id = Column(String(50), index=True, nullable=False)
+    machine_id = Column(String(50), index=True, default="CNC-01")
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    # Kinematic & Vibration Telemetry
+    vibration_x = Column(Float, nullable=True)  # m/s^2 or g
+    vibration_y = Column(Float, nullable=True)
+    vibration_z = Column(Float, nullable=True)
+    vibration_rms = Column(Float, nullable=True)
+    vibration_peak = Column(Float, nullable=True)
+    
+    # Thermal Telemetry
+    temperature = Column(Float, nullable=True)  # °C
+    
+    # Electrical & Mechanical Load Telemetry
+    spindle_current = Column(Float, nullable=True)  # A
+    spindle_power = Column(Float, nullable=True)    # W
+    cutting_force = Column(Float, nullable=True)    # N
+    
+    # Acoustic & High-Frequency Telemetry
+    acoustic_emission = Column(Float, nullable=True)  # dB / RMS
+    sound_level = Column(Float, nullable=True)        # dB
+    
+    # Process Parameters
+    rpm = Column(Float, nullable=True)          # RPM
+    feed_rate = Column(Float, nullable=True)    # mm/min
+    depth_of_cut = Column(Float, nullable=True) # mm
+    
+    # Multi-dimensional feature summaries & metadata
+    sensor_features = Column(Text, nullable=True)  # JSON string
+    source = Column(String(50), default="MANUAL_ENTRY") # MANUAL_ENTRY, CSV_UPLOAD, LIVE_STREAM
+    status = Column(String(50), default="VALID")        # VALID, PARTIAL, ANOMALOUS
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    def to_dict(self):
+        import json
+        return {
+            "id": self.id,
+            "reading_id": self.reading_id,
+            "inspection_id": self.inspection_id,
+            "tool_id": self.tool_id,
+            "machine_id": self.machine_id,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "vibration": {
+                "x": self.vibration_x,
+                "y": self.vibration_y,
+                "z": self.vibration_z,
+                "rms": self.vibration_rms,
+                "peak": self.vibration_peak,
+                "unit": "m/s²",
+            },
+            "temperature": {
+                "value": self.temperature,
+                "unit": "°C",
+            },
+            "spindle_current": {
+                "value": self.spindle_current,
+                "unit": "A",
+            },
+            "spindle_power": {
+                "value": self.spindle_power,
+                "unit": "W",
+            },
+            "cutting_force": {
+                "value": self.cutting_force,
+                "unit": "N",
+            },
+            "acoustic_emission": {
+                "value": self.acoustic_emission,
+                "unit": "dB",
+            },
+            "sound_level": {
+                "value": self.sound_level,
+                "unit": "dB",
+            },
+            "process_parameters": {
+                "rpm": self.rpm,
+                "feed_rate": self.feed_rate,
+                "depth_of_cut": self.depth_of_cut,
+            },
+            "sensor_features": json.loads(self.sensor_features) if self.sensor_features else {},
+            "source": self.source,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+

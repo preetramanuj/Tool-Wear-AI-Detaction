@@ -12,45 +12,72 @@ from backend.core.config import settings
 class FaceDetectionService:
     """
     Model 4: Operator Face Detection & Identity Verification Service.
-    Uses YOLO person/head detection with multi-scale facial landmark and HSV color/edge texture vectorization.
+    Powered by OpenCV YuNet DNN Face Engine + YOLO Person & Pose Landmark Vectorization.
     Performs 1:N cosine biometric verification against registered local templates.
     """
 
     def __init__(self, weights_path: Optional[str] = None):
-        if weights_path:
-            self.weights_path = weights_path
-        elif hasattr(settings, "PERSON_DETECTION_MODEL_PATHS") and settings.PERSON_DETECTION_MODEL_PATHS:
-            self.weights_path = settings.PERSON_DETECTION_MODEL_PATHS[0]
-        else:
-            self.weights_path = "yolo11n.pt"
-            
+        self.face_dir = str(Path(settings.BASE_DIR) / "models" / "face_detection")
+        os.makedirs(self.face_dir, exist_ok=True)
+        self.yunet_path = os.path.join(self.face_dir, "face_detection_yunet_2023mar.onnx")
+        
         self.registered_dir = getattr(settings, "FACE_REGISTERED_DIR", str(Path(settings.BASE_DIR) / "storage" / "face" / "registered"))
         os.makedirs(self.registered_dir, exist_ok=True)
         
-        self.model = None
+        self.yunet_detector = None
+        self.pose_model = None
+        self.yolo_model = None
         self._init_engine()
 
     def _init_engine(self):
+        # 1. Initialize YuNet DNN Face Detector
+        if os.path.exists(self.yunet_path):
+            try:
+                self.yunet_detector = cv2.FaceDetectorYN.create(
+                    model=self.yunet_path,
+                    config="",
+                    input_size=(320, 320),
+                    score_threshold=0.35,
+                    nms_threshold=0.30,
+                    top_k=50,
+                )
+                print(f"✓ Model 4 (YuNet Face Detector) loaded from: {self.yunet_path}")
+            except Exception as e:
+                print(f"Warning: YuNet Face Detector failed to load: {e}")
+                self.yunet_detector = None
+
+        # 2. Initialize YOLO Pose & Person Models
         try:
-            if os.path.exists(self.weights_path):
-                self.model = YOLO(self.weights_path)
-                print(f"✓ Model 4 (Face & Operator Detection) initialized from: {self.weights_path}")
+            pose_path = str(Path(settings.BASE_DIR) / "yolo11n-pose.pt")
+            if os.path.exists(pose_path):
+                self.pose_model = YOLO(pose_path)
             else:
-                self.model = YOLO("yolo11n.pt")
-                print("✓ Model 4 fallback to default yolo11n.pt")
+                self.pose_model = YOLO("yolo11n-pose.pt")
+            print("✓ Model 4 (YOLO Pose & Facial Keypoint Engine) loaded.")
         except Exception as e:
-            print(f"Warning: Face Detection YOLO failed to load: {e}")
-            self.model = None
+            print(f"Warning: YOLO Pose engine failed: {e}")
+            self.pose_model = None
+
+        try:
+            yolo_path = str(Path(settings.BASE_DIR) / "yolo11n.pt")
+            if os.path.exists(yolo_path):
+                self.yolo_model = YOLO(yolo_path)
+            else:
+                self.yolo_model = YOLO("yolo11n.pt")
+            print("✓ Model 4 (YOLO Person Detector) loaded.")
+        except Exception as e:
+            print(f"Warning: YOLO person model failed: {e}")
+            self.yolo_model = None
 
     def is_loaded(self) -> bool:
-        return self.model is not None
+        return self.yunet_detector is not None or self.pose_model is not None or self.yolo_model is not None
 
     def get_model_metadata(self) -> Dict[str, Any]:
         return {
             "model_id": "model_4_face_detection",
             "name": "Operator Face Detection & Identity Authentication",
             "task": "Operator Face Verification & Plant Authorization",
-            "framework": "Ultralytics YOLO + Multi-Scale Feature Engine",
+            "framework": "OpenCV YuNet DNN + Ultralytics YOLO Pose/Person",
             "status": "ONLINE" if self.is_loaded() else "OFFLINE",
             "registered_operators": len(self.get_registered_operators()),
         }
@@ -58,87 +85,136 @@ class FaceDetectionService:
     def detect_faces(self, image: np.ndarray) -> Dict[str, Any]:
         """
         Detects operator face/head bounding boxes in the input image.
-        Returns:
-            Dict containing faces list, bbox coordinates, and base64 annotated image.
+        Returns exact face count and bounding boxes (0 if no human face in frame).
         """
         start_time = time.perf_counter()
+        if image is None or image.size == 0:
+            return {"success": False, "faces_detected": 0, "faces": []}
+            
         h, w = image.shape[:2]
-        face_items = []
+        face_items: List[Dict[str, Any]] = []
 
-        try:
-            # 1. Run YOLO person detection
-            if self.model is not None:
-                results = self.model(image, verbose=False, conf=0.20)
-                for res in results:
-                    boxes = res.boxes
-                    for b in boxes:
-                        cls_id = int(b.cls[0].item())
-                        if cls_id == 0:  # person class in COCO
+        # 1. Primary: YuNet Deep Learning Face Detector
+        if self.yunet_detector is not None:
+            try:
+                self.yunet_detector.setInputSize((w, h))
+                ret, faces = self.yunet_detector.detect(image)
+                if ret and faces is not None:
+                    for face in faces:
+                        score = float(face[-1])
+                        if score >= 0.30:
+                            fx, fy, fw, fh = int(face[0]), int(face[1]), int(face[2]), int(face[3])
+                            fx = max(0, min(w - 1, fx))
+                            fy = max(0, min(h - 1, fy))
+                            fw = max(10, min(w - fx, fw))
+                            fh = max(10, min(h - fy, fh))
+                            
+                            face_items.append({
+                                "face_id": len(face_items) + 1,
+                                "confidence": round(score, 3),
+                                "confidence_percent": f"{score * 100:.1f}%",
+                                "bbox": {"x": fx, "y": fy, "w": fw, "h": fh},
+                                "bbox_xyxy": [fx, fy, fx + fw, fy + fh],
+                                "person_bbox": [fx, fy, fx + fw, fy + fh],
+                                "detector": "YuNet-DNN",
+                            })
+            except Exception as e:
+                print(f"YuNet detection error: {e}")
+
+        # 2. Secondary: YOLO Pose Keypoints (if YuNet didn't find or to augment)
+        if len(face_items) == 0 and self.pose_model is not None:
+            try:
+                pose_res = self.pose_model(image, conf=0.20, verbose=False)
+                for res in pose_res:
+                    if res.boxes and len(res.boxes) > 0:
+                        for idx, b in enumerate(res.boxes):
                             conf = float(b.conf[0].item())
                             px1, py1, px2, py2 = [int(v) for v in b.xyxy[0].tolist()]
                             
-                            # Estimate head/face region as top 30% of detected person box
-                            head_h = max(20, int((py2 - py1) * 0.32))
+                            # Check facial landmarks (0: Nose, 1: L-eye, 2: R-eye, 3: L-ear, 4: R-ear)
+                            if res.keypoints is not None and len(res.keypoints.xy) > idx:
+                                kpts = res.keypoints.xy[idx].cpu().numpy()[:5]
+                                valid_kpts = [pt for pt in kpts if pt[0] > 0 and pt[1] > 0]
+                                if len(valid_kpts) >= 1:
+                                    k_xs = [pt[0] for pt in valid_kpts]
+                                    k_ys = [pt[1] for pt in valid_kpts]
+                                    k_min_x, k_max_x = min(k_xs), max(k_xs)
+                                    k_min_y, k_max_y = min(k_ys), max(k_ys)
+                                    pad_w = max(20, int((k_max_x - k_min_x) * 0.45) if k_max_x > k_min_x else 40)
+                                    pad_h = max(25, int((k_max_y - k_min_y) * 0.55) if k_max_y > k_min_y else 50)
+                                    
+                                    fx = max(0, int(k_min_x - pad_w))
+                                    fy = max(0, int(k_min_y - pad_h))
+                                    fw = min(w - fx, int(max(40, k_max_x - k_min_x + 2 * pad_w)))
+                                    fh = min(h - fy, int(max(50, k_max_y - k_min_y + 2 * pad_h)))
+                                    
+                                    face_items.append({
+                                        "face_id": len(face_items) + 1,
+                                        "confidence": round(conf, 3),
+                                        "confidence_percent": f"{conf * 100:.1f}%",
+                                        "bbox": {"x": fx, "y": fy, "w": fw, "h": fh},
+                                        "bbox_xyxy": [fx, fy, fx + fw, fy + fh],
+                                        "person_bbox": [px1, py1, px2, py2],
+                                        "detector": "YOLO-Pose",
+                                    })
+                                    continue
+
+                            # Fallback head estimate from person box
+                            head_h = max(20, int((py2 - py1) * 0.35))
                             head_w = max(20, int((px2 - px1) * 0.65))
                             head_cx = int((px1 + px2) / 2)
-                            
                             fx = max(0, head_cx - int(head_w / 2))
                             fy = max(0, py1)
                             fw = min(w - fx, head_w)
                             fh = min(h - fy, head_h)
-                            
                             face_items.append({
                                 "face_id": len(face_items) + 1,
                                 "confidence": round(conf, 3),
                                 "confidence_percent": f"{conf * 100:.1f}%",
-                                "bbox": {"x": int(fx), "y": int(fy), "w": int(fw), "h": int(fh)},
-                                "bbox_xyxy": [int(fx), int(fy), int(fx + fw), int(fy + fh)],
-                                "person_bbox": [int(px1), int(py1), int(px2), int(py2)],
+                                "bbox": {"x": fx, "y": fy, "w": fw, "h": fh},
+                                "bbox_xyxy": [fx, fy, fx + fw, fy + fh],
+                                "person_bbox": [px1, py1, px2, py2],
+                                "detector": "YOLO-Person",
                             })
+            except Exception as e:
+                print(f"Pose detection error: {e}")
 
-            # 2. If no full-body person detected (e.g. close-up face crop), detect via skin/contrast region
-            if len(face_items) == 0:
-                hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-                lower_skin = np.array([0, 20, 70], dtype=np.uint8)
-                upper_skin = np.array([25, 255, 255], dtype=np.uint8)
-                mask = cv2.inRange(hsv, lower_skin, upper_skin)
-                contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                
-                valid_contours = [c for c in contours if cv2.contourArea(c) > (w * h * 0.03)]
-                if valid_contours:
-                    largest = max(valid_contours, key=cv2.contourArea)
-                    x, y, fw, fh = cv2.boundingRect(largest)
-                    face_items.append({
-                        "face_id": 1,
-                        "confidence": 0.88,
-                        "confidence_percent": "88.0%",
-                        "bbox": {"x": int(x), "y": int(y), "w": int(fw), "h": int(fh)},
-                        "bbox_xyxy": [int(x), int(y), int(x + fw), int(y + fh)],
-                        "person_bbox": [int(x), int(y), int(x + fw), int(y + fh)],
-                    })
-                else:
-                    # Direct portrait avatar center crop fallback
-                    cx, cy = int(w * 0.15), int(h * 0.10)
-                    cw, ch = int(w * 0.70), int(h * 0.70)
-                    face_items.append({
-                        "face_id": 1,
-                        "confidence": 0.75,
-                        "confidence_percent": "75.0%",
-                        "bbox": {"x": int(cx), "y": int(cy), "w": int(cw), "h": int(ch)},
-                        "bbox_xyxy": [int(cx), int(cy), int(cx + cw), int(cy + ch)],
-                        "person_bbox": [0, 0, int(w), int(h)],
-                    })
-
-        except Exception as e:
-            print(f"Face detection error: {e}")
+        # 3. Tertiary: YOLO Person Detector
+        if len(face_items) == 0 and self.yolo_model is not None:
+            try:
+                yolo_res = self.yolo_model(image, conf=0.20, verbose=False)
+                for res in yolo_res:
+                    for b in res.boxes:
+                        if int(b.cls[0].item()) == 0:  # person class
+                            conf = float(b.conf[0].item())
+                            px1, py1, px2, py2 = [int(v) for v in b.xyxy[0].tolist()]
+                            head_h = max(20, int((py2 - py1) * 0.35))
+                            head_w = max(20, int((px2 - px1) * 0.65))
+                            head_cx = int((px1 + px2) / 2)
+                            fx = max(0, head_cx - int(head_w / 2))
+                            fy = max(0, py1)
+                            fw = min(w - fx, head_w)
+                            fh = min(h - fy, head_h)
+                            face_items.append({
+                                "face_id": len(face_items) + 1,
+                                "confidence": round(conf, 3),
+                                "confidence_percent": f"{conf * 100:.1f}%",
+                                "bbox": {"x": fx, "y": fy, "w": fw, "h": fh},
+                                "bbox_xyxy": [fx, fy, fx + fw, fy + fh],
+                                "person_bbox": [px1, py1, px2, py2],
+                                "detector": "YOLO-COCO",
+                            })
+            except Exception as e:
+                print(f"YOLO person error: {e}")
 
         # Render Annotated Image
         annotated = image.copy()
         for face in face_items:
             bx, by, bw, bh = face["bbox"]["x"], face["bbox"]["y"], face["bbox"]["w"], face["bbox"]["h"]
-            cv2.rectangle(annotated, (bx, by), (bx + bw, by + bh), (0, 255, 100), 2)
-            lbl = f"OPERATOR FACE {face['confidence_percent']}"
-            cv2.putText(annotated, lbl, (bx, max(15, by - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 100), 1)
+            cv2.rectangle(annotated, (bx, by), (bx + bw, by + bh), (0, 165, 255), 2)
+            lbl = f"OPERATOR FACE [{face['confidence_percent']}]"
+            cv2.rectangle(annotated, (bx, max(0, by - 24)), (bx + len(lbl) * 9, by), (20, 20, 20), -1)
+            cv2.putText(annotated, lbl, (bx + 4, max(14, by - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 165, 255), 1, cv2.LINE_AA)
 
         _, buf = cv2.imencode(".jpg", annotated)
         b64_img = f"data:image/jpeg;base64,{base64.b64encode(buf).decode('utf-8')}"
@@ -146,7 +222,7 @@ class FaceDetectionService:
 
         return {
             "success": True,
-            "engine": "YOLO Vision Operator Face Engine",
+            "engine": "YuNet DNN + YOLO Pose/Person Face Engine",
             "faces_detected": int(len(face_items)),
             "faces": face_items,
             "image_dimensions": {"width": int(w), "height": int(h)},

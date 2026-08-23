@@ -7,6 +7,8 @@ export interface ToolDetectionResult {
   bbox_normalized?: [number, number, number, number];
   area_pixels?: number;
   num_tools_found?: number;
+  tool_eligibility?: string;
+  is_supported?: boolean;
   detections?: Array<{
     class_id: number;
     class_name: string;
@@ -35,10 +37,11 @@ export interface HealthPredictionResult {
   wear_um?: number;
   wear_unit?: string;
   health_score?: number;
-  health_status?: 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'UNKNOWN';
+  health_status?: 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'FACE_DETECTED' | 'SKIPPED' | 'UNKNOWN' | string;
   health_confidence?: number;
   recommended_action?: string;
   status?: string;
+  message?: string;
   error?: string;
 }
 
@@ -87,9 +90,86 @@ export interface PPEStatus {
   compliance_status: string;
 }
 
+export interface CombinedInsight {
+  category: string;
+  title: string;
+  narrative: string;
+  confidence: string;
+  recommended_action?: string;
+}
+
+export interface SensorDataInput {
+  vibration_x?: number | null;
+  vibration_y?: number | null;
+  vibration_z?: number | null;
+  vibration_rms?: number | null;
+  vibration_peak?: number | null;
+  temperature?: number | null;
+  spindle_current?: number | null;
+  spindle_power?: number | null;
+  cutting_force?: number | null;
+  acoustic_emission?: number | null;
+  sound_level?: number | null;
+  rpm?: number | null;
+  feed_rate?: number | null;
+  depth_of_cut?: number | null;
+  source?: string;
+}
+
+export interface SensorReading {
+  id?: number;
+  reading_id: string;
+  inspection_id?: string;
+  tool_id: string;
+  machine_id: string;
+  timestamp: string;
+  vibration: {
+    x?: number | null;
+    y?: number | null;
+    z?: number | null;
+    rms?: number | null;
+    peak?: number | null;
+    unit: string;
+  };
+  temperature: {
+    value?: number | null;
+    unit: string;
+  };
+  spindle_current: {
+    value?: number | null;
+    unit: string;
+  };
+  spindle_power: {
+    value?: number | null;
+    unit: string;
+  };
+  cutting_force: {
+    value?: number | null;
+    unit: string;
+  };
+  acoustic_emission: {
+    value?: number | null;
+    unit: string;
+  };
+  sound_level: {
+    value?: number | null;
+    unit: string;
+  };
+  process_parameters: {
+    rpm?: number | null;
+    feed_rate?: number | null;
+    depth_of_cut?: number | null;
+  };
+  sensor_features?: Record<string, any>;
+  source: string;
+  status: string;
+  created_at?: string;
+}
+
 export interface InspectionResult {
   success: boolean;
   inspection_id: string;
+  input_mode?: string;
   tool_id?: string;
   tool_name?: string;
   tool_type?: string;
@@ -100,6 +180,12 @@ export interface InspectionResult {
   wear_analysis: WearAnalysisResult;
   health_prediction: HealthPredictionResult;
   rul_prediction?: RULPredictionResult;
+  sensor_results?: {
+    available: boolean;
+    data: SensorDataInput;
+    source: string;
+  };
+  combined_insights?: CombinedInsight[];
   faces?: any;
   associations?: PersonToolAssociation[];
   images: {

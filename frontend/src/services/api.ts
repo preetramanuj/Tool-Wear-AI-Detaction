@@ -37,7 +37,10 @@ export const analyzeInspectionImage = async (
   file: File | Blob,
   toolId?: string,
   machineId: string = 'CNC-01',
-  operatorId: string = 'OP-DEFAULT'
+  operatorId: string = 'OP-DEFAULT',
+  sensorData?: Record<string, any>,
+  sensorFile?: File | null,
+  inputMode: string = 'IMAGE'
 ): Promise<InspectionResult> => {
   const formData = new FormData();
   if (file instanceof File) {
@@ -48,6 +51,14 @@ export const analyzeInspectionImage = async (
   if (toolId) formData.append('tool_id', toolId);
   formData.append('machine_id', machineId);
   formData.append('operator_id', operatorId);
+  formData.append('input_mode', inputMode);
+  
+  if (sensorData && Object.keys(sensorData).length > 0) {
+    formData.append('sensor_json', JSON.stringify(sensorData));
+  }
+  if (sensorFile) {
+    formData.append('sensor_file', sensorFile);
+  }
 
   const response = await apiClient.post<InspectionResult>('/inspection/analyze', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -55,13 +66,23 @@ export const analyzeInspectionImage = async (
   return response.data;
 };
 
-export const getInspectionRecords = async (skip: number = 0, limit: number = 50): Promise<{ count: number; inspections: InspectionResult[] }> => {
-  const response = await apiClient.get('/inspection/records', { params: { skip, limit } });
+export const getInspectionRecords = async (skip: number = 0, limit: number = 50, toolId?: string): Promise<{ count: number; inspections: InspectionResult[] }> => {
+  const response = await apiClient.get('/inspection/records', { params: { skip, limit, tool_id: toolId } });
   return response.data;
 };
 
 export const getInspectionDetail = async (id: string): Promise<{ inspection: InspectionResult }> => {
   const response = await apiClient.get(`/inspection/records/${id}`);
+  return response.data;
+};
+
+export const getInspectionSensors = async (inspectionId: string): Promise<any> => {
+  const response = await apiClient.get(`/inspection/${inspectionId}/sensors`);
+  return response.data;
+};
+
+export const getSensorsHistory = async (toolId?: string, skip: number = 0, limit: number = 50): Promise<any> => {
+  const response = await apiClient.get('/inspection/sensors/history', { params: { tool_id: toolId, skip, limit } });
   return response.data;
 };
 

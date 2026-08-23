@@ -14,6 +14,7 @@ from backend.database.models import (
     DowntimeEvent,
     EconomicParameters,
     ProcessOptimization,
+    SensorReading,
 )
 from backend.core.database import engine, Base
 
@@ -454,5 +455,32 @@ def approve_process_optimization(db: Session, optimization_id: str, approved: bo
         db.commit()
         db.refresh(opt)
     return opt
+
+
+# --- Sensor Reading CRUD ---
+def create_sensor_reading(db: Session, sensor_data: dict) -> SensorReading:
+    import json
+    data_copy = dict(sensor_data)
+    if "sensor_features" in data_copy and isinstance(data_copy["sensor_features"], (dict, list)):
+        data_copy["sensor_features"] = json.dumps(data_copy["sensor_features"])
+    
+    reading = SensorReading(**data_copy)
+    db.add(reading)
+    db.commit()
+    db.refresh(reading)
+    return reading
+
+def get_sensor_readings_by_tool(db: Session, tool_id: str, limit: int = 50) -> List[SensorReading]:
+    return db.query(SensorReading).filter(SensorReading.tool_id == tool_id).order_by(SensorReading.timestamp.desc()).limit(limit).all()
+
+def get_sensor_reading_by_inspection_id(db: Session, inspection_id: str) -> Optional[SensorReading]:
+    return db.query(SensorReading).filter(SensorReading.inspection_id == inspection_id).first()
+
+def get_sensor_readings_history(db: Session, skip: int = 0, limit: int = 50, tool_id: Optional[str] = None) -> List[SensorReading]:
+    query = db.query(SensorReading)
+    if tool_id and tool_id != "ALL":
+        query = query.filter(SensorReading.tool_id == tool_id)
+    return query.order_by(SensorReading.timestamp.desc()).offset(skip).limit(limit).all()
+
 
 
