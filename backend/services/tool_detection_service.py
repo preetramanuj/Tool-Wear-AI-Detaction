@@ -71,6 +71,79 @@ class ToolDetectionService:
             "input_size": [settings.IMAGE_SIZE, settings.IMAGE_SIZE],
         }
 
+    def locate_tool_insert_tight_bbox(self, image: np.ndarray, initial_bbox: Optional[List[int]] = None) -> List[int]:
+        """
+        Locates the tight bounding box of the cutting tool insert within the image.
+        If initial_bbox is already tightly localized (<85% of frame dimensions), it is preserved.
+        If initial_bbox covers >88% of the frame or is full-frame, it detects the foreground cutting insert contour.
+        """
+        if image is None or image.size == 0:
+            return [0, 0, 10, 10]
+            
+        h, w = image.shape[:2]
+        
+        if initial_bbox:
+            x1, y1, x2, y2 = [int(v) for v in initial_bbox]
+            x1 = max(0, min(w - 1, x1))
+            y1 = max(0, min(h - 1, y1))
+            x2 = max(x1 + 1, min(w, x2))
+            y2 = max(y1 + 1, min(h, y2))
+            bw = x2 - x1
+            bh = y2 - y1
+            # If the box is already localized (<85% of both dimensions), keep the model's box
+            if bw < 0.85 * w or bh < 0.85 * h:
+                return [x1, y1, x2, y2]
+        else:
+            x1, y1, x2, y2 = 0, 0, w, h
+            
+        # Analyze the region inside [x1, y1, x2, y2] to segment the cutting tool insert
+        roi = image[y1:y2, x1:x2]
+        rh, rw = roi.shape[:2]
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        edges = cv2.Canny(blurred, 30, 120)
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
+        closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
+        
+        contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        img_area = rw * rh
+        valid_boxes = []
+        
+        for c in contours:
+            area = cv2.contourArea(c)
+            if 0.02 * img_area < area < 0.90 * img_area:
+                bx, by, bw_c, bh_c = cv2.boundingRect(c)
+                if bw_c > 0.08 * rw and bh_c > 0.08 * rh:
+                    valid_boxes.append((area, [x1 + bx, y1 + by, x1 + bx + bw_c, y1 + by + bh_c]))
+                    
+        if not valid_boxes:
+            _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            for c in contours:
+                area = cv2.contourArea(c)
+                if 0.02 * img_area < area < 0.90 * img_area:
+                    bx, by, bw_c, bh_c = cv2.boundingRect(c)
+                    if bw_c > 0.08 * rw and bh_c > 0.08 * rh:
+                        valid_boxes.append((area, [x1 + bx, y1 + by, x1 + bx + bw_c, y1 + by + bh_c]))
+
+        if valid_boxes:
+            valid_boxes.sort(key=lambda x: x[0], reverse=True)
+            best = valid_boxes[0][1]
+            pad_x = int(0.04 * (best[2] - best[0]))
+            pad_y = int(0.04 * (best[3] - best[1]))
+            return [
+                max(0, best[0] - pad_x),
+                max(0, best[1] - pad_y),
+                min(w, best[2] + pad_x),
+                min(h, best[3] + pad_y),
+            ]
+            
+        # Clean inset framing if no single contour (10% border inset)
+        inset_x = int(0.10 * w)
+        inset_y = int(0.10 * h)
+        return [inset_x, inset_y, w - inset_x, h - inset_y]
+
     def detect(
         self,
         image: np.ndarray,
@@ -79,7 +152,7 @@ class ToolDetectionService:
     ) -> Dict[str, Any]:
         """
         Runs YOLO11n inference on an input image (BGR numpy array).
-        Returns bounding boxes, detection confidence, true class name, and tool ROI crop.
+        Returns tight tool bounding boxes, detection confidence, true class name, and tool ROI crop.
         """
         if not self.is_loaded():
             return {
@@ -126,7 +199,8 @@ class ToolDetectionService:
                     cls_id = int(box.cls[0].cpu().numpy())
                     cls_name = self.class_names.get(cls_id, "cutting_tool")
                     
-                    x1, y1, x2, y2 = xyxy
+                    # Refine to tight tool insert bounding box
+                    x1, y1, x2, y2 = self.locate_tool_insert_tight_bbox(image, xyxy)
                     x1 = max(0, min(orig_w - 1, x1))
                     y1 = max(0, min(orig_h - 1, y1))
                     x2 = max(x1 + 1, min(orig_w, x2))
@@ -391,12 +465,24 @@ class ToolDetectionService:
             return annotated
 
         for det in detections:
-            bbox = det.get("bbox", det.get("bbox_xyxy", [0, 0, 0, 0]))
-            x1, y1, x2, y2 = bbox
+            raw_bbox = det.get("bbox", det.get("bbox_xyxy", [0, 0, 0, 0]))
+            x1, y1, x2, y2 = self.locate_tool_insert_tight_bbox(image, raw_bbox)
             conf_str = det.get("confidence_percent", f"{det.get('confidence', 0.0)*100:.1f}%")
             cls_name = det.get("class_name", "cutting_tool")
 
+            # Draw sleek green bounding box around only the cutting tool
             cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            
+            # Corner accents
+            corner_len = max(8, min(24, int(min(x2 - x1, y2 - y1) * 0.18)))
+            cv2.line(annotated, (x1, y1), (x1 + corner_len, y1), (0, 255, 0), 3)
+            cv2.line(annotated, (x1, y1), (x1, y1 + corner_len), (0, 255, 0), 3)
+            cv2.line(annotated, (x2, y1), (x2 - corner_len, y1), (0, 255, 0), 3)
+            cv2.line(annotated, (x2, y1), (x2, y1 + corner_len), (0, 255, 0), 3)
+            cv2.line(annotated, (x1, y2), (x1 + corner_len, y2), (0, 255, 0), 3)
+            cv2.line(annotated, (x1, y2), (x1, y2 - corner_len), (0, 255, 0), 3)
+            cv2.line(annotated, (x2, y2), (x2 - corner_len, y2), (0, 255, 0), 3)
+            cv2.line(annotated, (x2, y2), (x2, y2 - corner_len), (0, 255, 0), 3)
             
             label = f"{cls_name.upper()} [{conf_str}]"
             cv2.rectangle(annotated, (x1, max(0, y1 - 24)), (x1 + len(label) * 9, y1), (20, 20, 20), -1)

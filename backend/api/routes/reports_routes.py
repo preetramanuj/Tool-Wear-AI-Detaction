@@ -30,11 +30,12 @@ def normalize_report_type(raw_type: str) -> str:
         "maintenance_report": "ECONOMIC_RELIABILITY",
         "economic_reliability": "ECONOMIC_RELIABILITY",
         "ECONOMIC_RELIABILITY": "ECONOMIC_RELIABILITY",
+        "economic": "ECONOMIC_RELIABILITY",
         "sustainability": "ECONOMIC_RELIABILITY",
         "comprehensive_audit": "COMPREHENSIVE_AUDIT",
         "COMPREHENSIVE_AUDIT": "COMPREHENSIVE_AUDIT",
     }
-    return mapping.get(raw_type, "COMPREHENSIVE_AUDIT")
+    return mapping.get(raw_type.lower() if raw_type else "", mapping.get(raw_type, "COMPREHENSIVE_AUDIT"))
 
 @router.get("/generate")
 async def generate_report_get(

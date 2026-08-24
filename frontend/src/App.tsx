@@ -11,6 +11,7 @@ import { Models } from './pages/Models';
 import { FaceDetection } from './pages/FaceDetection';
 import { Alerts } from './pages/Alerts';
 import { Reports } from './pages/Reports';
+import { ReportViewer } from './pages/ReportViewer';
 import { Settings } from './pages/Settings';
 import { ManufacturingInsights } from './pages/ManufacturingInsights';
 import { EconomicImpact } from './pages/EconomicImpact';
@@ -63,6 +64,7 @@ export const App: React.FC = () => {
               <Route path="/face-detection" element={<FaceDetection />} />
               <Route path="/alerts" element={<Alerts />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/reports/view" element={<ReportViewer />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>
           </main>
