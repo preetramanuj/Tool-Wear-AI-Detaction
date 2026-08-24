@@ -17,6 +17,8 @@ import {
   FileCheck,
   Check,
   X,
+  Circle,
+  CircleDot
 } from 'lucide-react';
 import {
   getTools,
@@ -126,14 +128,12 @@ export const ProcessOptimization: React.FC = () => {
       {/* ============================================================ */}
       {/* 1. PAGE HEADER */}
       {/* ============================================================ */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E2DFD7]">
         <div className="space-y-1">
-          <div className="flex items-center gap-2.5">
-            {/* <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-sky-100 text-sky-800 border border-sky-300">
-              MODEL 10
-            </span> */}
-            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-              PROCESS PARAMETER OPTIMIZATION
+          <div className="flex items-center gap-3">
+            <Sliders className="w-7 h-7 text-accent" />
+            <h1 className="text-3xl md:text-4xl font-bold font-display bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tight">
+              Process Parameter Optimization
             </h1>
           </div>
           <p className="text-sm text-slate-500 font-mono">
@@ -142,8 +142,8 @@ export const ProcessOptimization: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 font-mono text-xs">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 font-bold">
-            <ShieldCheck className="w-4 h-4 text-amber-600" />
+          <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-warning-light text-warning-dark border border-warning-border font-bold shadow-2xs">
+            <ShieldCheck className="w-4 h-4 text-warning" />
             Decision Support — Engineer Approval Required
           </span>
         </div>
@@ -152,12 +152,12 @@ export const ProcessOptimization: React.FC = () => {
       {/* ============================================================ */}
       {/* 2. TARGET CONFIGURATION (TOOL, MACHINE, MATERIAL) */}
       {/* ============================================================ */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-xs space-y-6">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-8 md:p-10 shadow-paper space-y-6">
         <div>
-          <span className="text-xs font-mono uppercase tracking-wider text-sky-600 font-bold">
+          <span className="text-xs font-mono uppercase tracking-wider text-accent font-bold">
             STEP 1 — TARGET CONFIGURATION
           </span>
-          <h2 className="text-xl font-bold text-slate-900 font-sans mt-0.5">
+          <h2 className="text-xl font-bold text-slate-900 font-display mt-0.5">
             Select Tool, Machine Station & Workpiece Material
           </h2>
         </div>
@@ -168,7 +168,7 @@ export const ProcessOptimization: React.FC = () => {
             <select
               value={selectedToolId}
               onChange={(e) => setSelectedToolId(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:bg-white transition"
+              className="w-full px-4 py-3 bg-[#F8F7F4] border border-[#E2DFD7] rounded-xl text-slate-900 font-bold focus:bg-white focus:outline-accent transition shadow-inner"
             >
               {tools.map((t) => (
                 <option key={t.tool_id} value={t.tool_id}>
@@ -183,7 +183,7 @@ export const ProcessOptimization: React.FC = () => {
             <select
               value={selectedMachine}
               onChange={(e) => setSelectedMachine(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:bg-white transition"
+              className="w-full px-4 py-3 bg-[#F8F7F4] border border-[#E2DFD7] rounded-xl text-slate-900 font-bold focus:bg-white focus:outline-accent transition shadow-inner"
             >
               <option value="CNC-LATHE-01">CNC-LATHE-01 (Heavy Turning)</option>
               <option value="CNC-MILL-02">CNC-MILL-02 (5-Axis Milling)</option>
@@ -196,7 +196,7 @@ export const ProcessOptimization: React.FC = () => {
             <select
               value={selectedMaterial}
               onChange={(e) => setSelectedMaterial(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:bg-white transition"
+              className="w-full px-4 py-3 bg-[#F8F7F4] border border-[#E2DFD7] rounded-xl text-slate-900 font-bold focus:bg-white focus:outline-accent transition shadow-inner"
             >
               <option value="CK45 / Alloy Steel">CK45 / Alloy Steel (Standard)</option>
               <option value="RVS304 / Stainless Steel">RVS304 / Stainless Steel</option>
@@ -211,22 +211,22 @@ export const ProcessOptimization: React.FC = () => {
       {/* ============================================================ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* CURRENT PARAMETERS */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs space-y-6 font-mono">
+        <div className="bg-white border border-[#E2DFD7] rounded-3xl p-8 shadow-paper space-y-6 font-mono">
           <div>
-            <span className="text-xs uppercase tracking-wider text-sky-600 font-bold">
+            <span className="text-xs uppercase tracking-wider text-accent font-bold">
               STEP 2 — CURRENT PARAMETERS
             </span>
-            <h2 className="text-xl font-bold text-slate-900 font-sans mt-0.5">
+            <h2 className="text-xl font-bold text-slate-900 font-display mt-0.5">
               Enter Current Machine Telemetry
             </h2>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-6">
             {/* RPM */}
             <div className="space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-600 font-bold">Spindle Speed (n):</span>
-                <span className="text-sky-700 font-black text-sm">{rpm} RPM</span>
+                <span className="text-accent font-bold font-display text-sm data-readout">{rpm} RPM</span>
               </div>
               <input
                 type="range"
@@ -235,7 +235,7 @@ export const ProcessOptimization: React.FC = () => {
                 step="50"
                 value={rpm}
                 onChange={(e) => setRpm(Number(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-accent"
               />
               <div className="flex justify-between text-[10px] text-slate-400">
                 <span>Min: 2547 RPM</span>
@@ -247,7 +247,7 @@ export const ProcessOptimization: React.FC = () => {
             <div className="space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-600 font-bold">Feed per Tooth (fz):</span>
-                <span className="text-sky-700 font-black text-sm">{feedRate.toFixed(3)} mm/tooth</span>
+                <span className="text-accent font-bold font-display text-sm data-readout">{feedRate.toFixed(3)} mm/tooth</span>
               </div>
               <input
                 type="range"
@@ -256,7 +256,7 @@ export const ProcessOptimization: React.FC = () => {
                 step="0.005"
                 value={feedRate}
                 onChange={(e) => setFeedRate(Number(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-accent"
               />
               <div className="flex justify-between text-[10px] text-slate-400">
                 <span>Min: 0.030 mm/tooth</span>
@@ -268,7 +268,7 @@ export const ProcessOptimization: React.FC = () => {
             <div className="space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-600 font-bold">Depth of Cut (Ap):</span>
-                <span className="text-sky-700 font-black text-sm">{depthOfCut.toFixed(1)} mm</span>
+                <span className="text-accent font-bold font-display text-sm data-readout">{depthOfCut.toFixed(1)} mm</span>
               </div>
               <input
                 type="range"
@@ -277,7 +277,7 @@ export const ProcessOptimization: React.FC = () => {
                 step="0.1"
                 value={depthOfCut}
                 onChange={(e) => setDepthOfCut(Number(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-accent"
               />
               <div className="flex justify-between text-[10px] text-slate-400">
                 <span>Min: 0.5 mm</span>
@@ -288,29 +288,29 @@ export const ProcessOptimization: React.FC = () => {
         </div>
 
         {/* OPTIMIZATION OBJECTIVE */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs space-y-6">
+        <div className="bg-white border border-[#E2DFD7] rounded-3xl p-8 shadow-paper space-y-6">
           <div>
-            <span className="text-xs font-mono uppercase tracking-wider text-sky-600 font-bold">
+            <span className="text-xs font-mono uppercase tracking-wider text-accent font-bold">
               STEP 3 — OPTIMIZATION OBJECTIVE
             </span>
-            <h2 className="text-xl font-bold text-slate-900 font-sans mt-0.5">
+            <h2 className="text-xl font-bold text-slate-900 font-display mt-0.5">
               Select Pareto Target Goal
             </h2>
           </div>
 
-          <div className="space-y-3 font-mono text-xs">
+          <div className="space-y-3 font-mono text-xs flex flex-col h-full">
             {/* Objective 1 */}
             <button
               type="button"
               onClick={() => setSelectedObjective('MAXIMIZE_TOOL_LIFE')}
-              className={`w-full text-left p-4 rounded-2xl border transition ${selectedObjective === 'MAXIMIZE_TOOL_LIFE'
-                ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-900'
-                : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-50'
+              className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${selectedObjective === 'MAXIMIZE_TOOL_LIFE'
+                ? 'bg-normal-light border-normal ring-1 ring-normal text-normal'
+                : 'bg-[#F8F7F4] border-[#E2DFD7] text-slate-700 hover:bg-white'
                 }`}
             >
-              <div className="flex items-center justify-between font-bold text-sm">
+              <div className="flex items-center justify-between font-bold font-display text-sm">
                 <span>1. Maximize Tool Life</span>
-                <span className="text-xs text-emerald-700">90% Wear / 10% Prod</span>
+                <span className="text-xs text-normal">90% Wear / 10% Prod</span>
               </div>
               <p className="text-xs text-slate-500 font-sans mt-1">
                 Minimizes flank wear rate (µm/cycle) to maximize the number of cutting cycles before insert replacement.
@@ -321,14 +321,14 @@ export const ProcessOptimization: React.FC = () => {
             <button
               type="button"
               onClick={() => setSelectedObjective('MAXIMIZE_PRODUCTIVITY')}
-              className={`w-full text-left p-4 rounded-2xl border transition ${selectedObjective === 'MAXIMIZE_PRODUCTIVITY'
-                ? 'bg-sky-50 border-sky-500 ring-2 ring-sky-500/20 text-sky-900'
-                : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-50'
+              className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${selectedObjective === 'MAXIMIZE_PRODUCTIVITY'
+                ? 'bg-accent-50 border-accent ring-1 ring-accent text-accent'
+                : 'bg-[#F8F7F4] border-[#E2DFD7] text-slate-700 hover:bg-white'
                 }`}
             >
-              <div className="flex items-center justify-between font-bold text-sm">
+              <div className="flex items-center justify-between font-bold font-display text-sm">
                 <span>2. Maximize Productivity</span>
-                <span className="text-xs text-sky-700">90% Prod / 10% Wear</span>
+                <span className="text-xs text-accent">90% Prod / 10% Wear</span>
               </div>
               <p className="text-xs text-slate-500 font-sans mt-1">
                 Maximizes Material Removal Rate (MRR) to achieve fastest machining cycle times and throughput.
@@ -339,14 +339,14 @@ export const ProcessOptimization: React.FC = () => {
             <button
               type="button"
               onClick={() => setSelectedObjective('BALANCED')}
-              className={`w-full text-left p-4 rounded-2xl border transition ${selectedObjective === 'BALANCED'
-                ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500/20 text-indigo-900'
-                : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-50'
+              className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${selectedObjective === 'BALANCED'
+                ? 'bg-slate-100 border-slate-400 ring-1 ring-slate-400 text-slate-800'
+                : 'bg-[#F8F7F4] border-[#E2DFD7] text-slate-700 hover:bg-white'
                 }`}
             >
-              <div className="flex items-center justify-between font-bold text-sm">
+              <div className="flex items-center justify-between font-bold font-display text-sm">
                 <span>3. Balanced Tradeoff</span>
-                <span className="text-xs text-indigo-700">50% Prod / 50% Wear</span>
+                <span className="text-xs text-slate-600">50% Prod / 50% Wear</span>
               </div>
               <p className="text-xs text-slate-500 font-sans mt-1">
                 Equally balances throughput with wear longevity on the empirical Pareto frontier.
@@ -359,10 +359,10 @@ export const ProcessOptimization: React.FC = () => {
       {/* ============================================================ */}
       {/* 4. RUN OPTIMIZATION BUTTON & PROGRESS */}
       {/* ============================================================ */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs space-y-6">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-8 shadow-paper space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 font-sans">
+            <h3 className="text-lg font-bold font-display text-slate-900">
               Execute Model 10 Optimization
             </h3>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
@@ -373,7 +373,7 @@ export const ProcessOptimization: React.FC = () => {
           <button
             onClick={handleRunOptimization}
             disabled={isOptimizing}
-            className="flex items-center justify-center gap-2.5 px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white rounded-2xl text-sm font-bold font-mono transition shadow-xs disabled:opacity-50"
+            className="flex items-center justify-center gap-2.5 px-8 py-4 bg-accent hover:bg-accent-hover text-white rounded-2xl text-sm font-bold font-mono transition-all duration-300 shadow-paper hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:transform-none"
           >
             {isOptimizing ? (
               <>
@@ -390,31 +390,34 @@ export const ProcessOptimization: React.FC = () => {
         </div>
 
         {error && (
-          <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs font-mono flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+          <div className="p-4 bg-critical-light border border-critical-border rounded-2xl text-critical text-xs font-mono flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-critical shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {/* PROGRESS STAGES */}
         {isOptimizing && (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-4 border-t border-slate-100 font-mono text-xs">
-            <div className="p-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>✓ Input validated</span>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-4 border-t border-[#E2DFD7] font-mono text-xs">
+            <div className="p-3 rounded-xl bg-normal-light text-normal-dark border border-normal-border font-bold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-normal" />
+              <span>Input validated</span>
             </div>
-            <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${optimizationStage >= 1 ? 'bg-sky-50 text-sky-800 border-sky-300' : 'bg-slate-50 text-slate-400'}`}>
-              <span className="w-2 h-2 rounded-full bg-sky-600 animate-pulse"></span>
-              <span>● Searching candidates</span>
+            <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${optimizationStage >= 1 ? 'bg-accent-50 text-accent border-accent-border' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+              <span>Searching candidates</span>
             </div>
-            <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${optimizationStage >= 2 ? 'bg-sky-50 text-sky-800 border-sky-300' : 'bg-slate-50 text-slate-400'}`}>
-              <span>○ Checking constraints</span>
+            <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${optimizationStage >= 2 ? 'bg-accent-50 text-accent border-accent-border' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+              {optimizationStage >= 2 ? <CircleDot className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
+              <span>Checking constraints</span>
             </div>
-            <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${optimizationStage >= 3 ? 'bg-sky-50 text-sky-800 border-sky-300' : 'bg-slate-50 text-slate-400'}`}>
-              <span>○ Scoring Pareto front</span>
+            <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${optimizationStage >= 3 ? 'bg-accent-50 text-accent border-accent-border' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+              {optimizationStage >= 3 ? <CircleDot className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
+              <span>Scoring Pareto front</span>
             </div>
-            <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${optimizationStage >= 4 ? 'bg-sky-50 text-sky-800 border-sky-300' : 'bg-slate-50 text-slate-400'}`}>
-              <span>○ Selecting best</span>
+            <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${optimizationStage >= 4 ? 'bg-accent-50 text-accent border-accent-border' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+              {optimizationStage >= 4 ? <CircleDot className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
+              <span>Selecting best</span>
             </div>
           </div>
         )}
@@ -428,41 +431,41 @@ export const ProcessOptimization: React.FC = () => {
           {/* Comparison Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* CURRENT PARAMETERS */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs space-y-6">
-              <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="bg-white border border-[#E2DFD7] rounded-3xl p-8 shadow-paper space-y-6">
+              <div className="pb-4 border-b border-[#E2DFD7] flex items-center justify-between">
                 <div>
                   <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">
                     BASELINE TELEMETRY
                   </span>
-                  <h3 className="text-xl font-bold text-slate-900 font-sans mt-0.5">
+                  <h3 className="text-xl font-bold font-display text-slate-900 mt-0.5">
                     CURRENT PARAMETERS
                   </h3>
                 </div>
-                <span className="text-xs font-mono font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                <span className="text-xs font-mono font-bold text-slate-500 bg-[#F8F7F4] border border-[#E2DFD7] px-3 py-1 rounded-full">
                   Configured
                 </span>
               </div>
 
               <div className="grid grid-cols-3 gap-4 font-mono">
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                <div className="p-4 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl shadow-inner">
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Spindle Speed</div>
-                  <div className="text-2xl font-black text-slate-900 mt-1">
+                  <div className="text-2xl font-bold font-display text-slate-900 mt-1 data-readout">
                     {result.current_parameters.n}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">RPM</div>
                 </div>
 
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                <div className="p-4 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl shadow-inner">
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Feed per Tooth</div>
-                  <div className="text-2xl font-black text-slate-900 mt-1">
+                  <div className="text-2xl font-bold font-display text-slate-900 mt-1 data-readout">
                     {result.current_parameters.fz.toFixed(3)}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">mm/tooth</div>
                 </div>
 
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                <div className="p-4 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl shadow-inner">
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Depth of Cut</div>
-                  <div className="text-2xl font-black text-slate-900 mt-1">
+                  <div className="text-2xl font-bold font-display text-slate-900 mt-1 data-readout">
                     {result.current_parameters.Ap.toFixed(1)}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">mm</div>
@@ -471,44 +474,45 @@ export const ProcessOptimization: React.FC = () => {
             </div>
 
             {/* RECOMMENDED PARAMETERS */}
-            <div className="bg-white border-2 border-sky-500 rounded-3xl p-8 shadow-sm space-y-6 relative overflow-hidden">
-              <div className="pb-4 border-b border-sky-100 flex items-center justify-between">
+            <div className="bg-white border-2 border-accent rounded-3xl p-8 shadow-paper space-y-6 relative overflow-hidden group transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+              <div className="pb-4 border-b border-[#E2DFD7] flex items-center justify-between relative">
                 <div>
-                  <span className="text-xs font-mono uppercase tracking-wider text-sky-600 font-bold">
+                  <span className="text-xs font-mono uppercase tracking-wider text-accent font-bold">
                     MODEL 10 RECOMMENDATION
                   </span>
-                  <h3 className="text-xl font-bold text-slate-900 font-sans mt-0.5">
+                  <h3 className="text-xl font-bold font-display text-slate-900 mt-0.5">
                     RECOMMENDED PARAMETERS
                   </h3>
                 </div>
-                <span className="text-xs font-mono font-bold text-sky-700 bg-sky-50 px-3 py-1 rounded-full border border-sky-200">
+                <span className="text-xs font-mono font-bold text-accent bg-accent-50 px-3 py-1 rounded-full border border-accent-100">
                   Score: {result.optimization_score?.toFixed(4) || 'Optimal'}
                 </span>
               </div>
 
               <div className="grid grid-cols-3 gap-4 font-mono">
-                <div className="p-4 bg-sky-50/60 border border-sky-100 rounded-2xl">
-                  <div className="text-[10px] text-sky-700 font-bold uppercase">Spindle Speed</div>
-                  <div className="text-2xl font-black text-sky-900 mt-1">
+                <div className="p-4 bg-accent-50 border border-accent-100 rounded-2xl shadow-inner">
+                  <div className="text-[10px] text-accent font-bold uppercase">Spindle Speed</div>
+                  <div className="text-2xl font-bold font-display text-accent-dark mt-1 data-readout">
                     {result.recommended_parameters.n}
                   </div>
-                  <div className="text-[10px] text-sky-600 mt-0.5">RPM</div>
+                  <div className="text-[10px] text-accent-dark mt-0.5">RPM</div>
                 </div>
 
-                <div className="p-4 bg-sky-50/60 border border-sky-100 rounded-2xl">
-                  <div className="text-[10px] text-sky-700 font-bold uppercase">Feed per Tooth</div>
-                  <div className="text-2xl font-black text-sky-900 mt-1">
+                <div className="p-4 bg-accent-50 border border-accent-100 rounded-2xl shadow-inner">
+                  <div className="text-[10px] text-accent font-bold uppercase">Feed per Tooth</div>
+                  <div className="text-2xl font-bold font-display text-accent-dark mt-1 data-readout">
                     {result.recommended_parameters.fz.toFixed(3)}
                   </div>
-                  <div className="text-[10px] text-sky-600 mt-0.5">mm/tooth</div>
+                  <div className="text-[10px] text-accent-dark mt-0.5">mm/tooth</div>
                 </div>
 
-                <div className="p-4 bg-sky-50/60 border border-sky-100 rounded-2xl">
-                  <div className="text-[10px] text-sky-700 font-bold uppercase">Depth of Cut</div>
-                  <div className="text-2xl font-black text-sky-900 mt-1">
+                <div className="p-4 bg-accent-50 border border-accent-100 rounded-2xl shadow-inner">
+                  <div className="text-[10px] text-accent font-bold uppercase">Depth of Cut</div>
+                  <div className="text-2xl font-bold font-display text-accent-dark mt-1 data-readout">
                     {result.recommended_parameters.Ap.toFixed(1)}
                   </div>
-                  <div className="text-[10px] text-sky-600 mt-0.5">mm</div>
+                  <div className="text-[10px] text-accent-dark mt-0.5">mm</div>
                 </div>
               </div>
             </div>
@@ -517,24 +521,24 @@ export const ProcessOptimization: React.FC = () => {
           {/* ============================================================ */}
           {/* 6. EXPECTED IMPACT METRICS */}
           {/* ============================================================ */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-xs space-y-6">
+          <div className="bg-white border border-[#E2DFD7] rounded-3xl p-8 md:p-10 shadow-paper space-y-6">
             <div>
-              <span className="text-xs font-mono uppercase tracking-wider text-sky-600 font-bold">
+              <span className="text-xs font-mono uppercase tracking-wider text-accent font-bold">
                 EXPECTED IMPACT
               </span>
-              <h2 className="text-2xl font-bold text-slate-900 font-sans mt-0.5">
+              <h2 className="text-2xl font-bold font-display text-slate-900 mt-0.5">
                 Empirical Performance Projections
               </h2>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 font-mono">
               {/* Wear Rate */}
-              <div className="p-5 bg-slate-50 border border-slate-100 rounded-2xl space-y-2">
+              <div className="p-5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl space-y-2 shadow-2xs">
                 <div className="text-[11px] text-slate-400 font-bold uppercase flex items-center gap-1.5">
-                  <TrendingDown className="w-4 h-4 text-emerald-600" />
+                  <TrendingDown className="w-4 h-4 text-normal" />
                   Estimated Wear Rate
                 </div>
-                <div className="text-2xl font-black text-emerald-600">
+                <div className="text-2xl font-bold font-display text-normal data-readout">
                   {result.expected_impact.recommended_wear_rate_um_per_cycle.toFixed(4)} µm/cyc
                 </div>
                 <div className="text-xs text-slate-500 font-sans">
@@ -543,12 +547,12 @@ export const ProcessOptimization: React.FC = () => {
               </div>
 
               {/* Productivity (MRR) */}
-              <div className="p-5 bg-slate-50 border border-slate-100 rounded-2xl space-y-2">
+              <div className="p-5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl space-y-2 shadow-2xs">
                 <div className="text-[11px] text-slate-400 font-bold uppercase flex items-center gap-1.5">
-                  <TrendingUp className="w-4 h-4 text-sky-600" />
+                  <TrendingUp className="w-4 h-4 text-accent" />
                   Productivity (MRR)
                 </div>
-                <div className="text-2xl font-black text-sky-800">
+                <div className="text-2xl font-bold font-display text-accent-dark data-readout">
                   {result.expected_impact.recommended_mrr.toFixed(1)}
                 </div>
                 <div className="text-xs text-slate-500 font-sans">
@@ -557,12 +561,12 @@ export const ProcessOptimization: React.FC = () => {
               </div>
 
               {/* Projected Cycles */}
-              <div className="p-5 bg-slate-50 border border-slate-100 rounded-2xl space-y-2">
+              <div className="p-5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl space-y-2 shadow-2xs">
                 <div className="text-[11px] text-slate-400 font-bold uppercase flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-indigo-600" />
+                  <Clock className="w-4 h-4 text-warning" />
                   Projected Life to EOL
                 </div>
-                <div className="text-2xl font-black text-indigo-700">
+                <div className="text-2xl font-bold font-display text-warning-dark data-readout">
                   {result.expected_impact.recommended_projected_rul_cycles} cyc
                 </div>
                 <div className="text-xs text-slate-500 font-sans">
@@ -571,12 +575,12 @@ export const ProcessOptimization: React.FC = () => {
               </div>
 
               {/* Data Provenance */}
-              <div className="p-5 bg-slate-50 border border-slate-100 rounded-2xl space-y-2">
+              <div className="p-5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl space-y-2 shadow-2xs">
                 <div className="text-[11px] text-slate-400 font-bold uppercase flex items-center gap-1.5">
                   <Database className="w-4 h-4 text-slate-500" />
                   Data Provenance
                 </div>
-                <div className="text-lg font-black text-slate-800 mt-1">
+                <div className="text-lg font-bold font-display text-slate-800 mt-1">
                   Empirical Pareto
                 </div>
                 <div className="text-xs text-slate-500 font-sans">
@@ -586,9 +590,9 @@ export const ProcessOptimization: React.FC = () => {
             </div>
 
             {/* Explanation & Reasoning Card */}
-            <div className="p-6 bg-sky-50/50 border border-sky-200 rounded-2xl space-y-2 font-mono text-xs">
-              <div className="font-bold text-sky-900 uppercase text-[11px] flex items-center gap-2">
-                <Cpu className="w-4 h-4 text-sky-600" />
+            <div className="p-6 bg-accent-50 border border-accent-100 rounded-2xl space-y-2 font-mono text-xs">
+              <div className="font-bold text-accent-dark uppercase text-[11px] flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-accent" />
                 WHY THIS RECOMMENDATION?
               </div>
               <p className="text-slate-700 font-sans leading-relaxed text-sm">
@@ -597,9 +601,9 @@ export const ProcessOptimization: React.FC = () => {
             </div>
 
             {/* Engineer Approval Action Bar */}
-            <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs">
+            <div className="pt-4 border-t border-[#E2DFD7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs">
               <div className="flex items-center gap-2 text-slate-500">
-                <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                <ShieldCheck className="w-4 h-4 text-warning shrink-0" />
                 <span>AI Recommendation — Engineer Approval Required</span>
               </div>
 
@@ -607,8 +611,8 @@ export const ProcessOptimization: React.FC = () => {
                 <button
                   onClick={handleApprove}
                   disabled={isApproved}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition shadow-xs ${isApproved
-                    ? 'bg-emerald-600 text-white cursor-default'
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition shadow-paper ${isApproved
+                    ? 'bg-normal text-white cursor-default'
                     : 'bg-slate-900 hover:bg-slate-800 text-white'
                     }`}
                 >
@@ -633,10 +637,10 @@ export const ProcessOptimization: React.FC = () => {
       {/* ============================================================ */}
       {/* 7. OPTIMIZATION HISTORY AUDIT LEDGER */}
       {/* ============================================================ */}
-      <div className="bg-white border border-slate-200 rounded-3xl shadow-xs overflow-hidden">
-        <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl shadow-paper overflow-hidden p-6 md:p-8 space-y-6">
+        <div className="pb-4 border-b border-[#E2DFD7] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 font-sans">
+            <h2 className="text-xl font-bold font-display text-slate-900 uppercase">
               Process Optimization History ({history.length})
             </h2>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
@@ -646,7 +650,7 @@ export const ProcessOptimization: React.FC = () => {
 
           <button
             onClick={fetchHistory}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-mono font-bold transition border border-slate-200"
+            className="flex items-center gap-2 px-4 py-2 bg-[#F8F7F4] hover:bg-[#F0EFEA] text-slate-700 rounded-xl text-xs font-mono font-bold transition border border-[#E2DFD7] shadow-2xs"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingHistory ? 'animate-spin' : ''}`} />
             <span>Refresh Ledger</span>
@@ -656,17 +660,17 @@ export const ProcessOptimization: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px]">
-                <th className="p-4">Opt ID</th>
-                <th className="p-4">Tool</th>
-                <th className="p-4">Objective</th>
-                <th className="p-4">Current (RPM / fz / Ap)</th>
-                <th className="p-4">Recommended (RPM / fz / Ap)</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-right">Date</th>
+              <tr className="bg-[#F8F7F4] border-b border-[#E2DFD7] text-slate-500 uppercase text-[10px]">
+                <th className="p-4 font-bold">Opt ID</th>
+                <th className="p-4 font-bold">Tool</th>
+                <th className="p-4 font-bold">Objective</th>
+                <th className="p-4 font-bold">Current (RPM / fz / Ap)</th>
+                <th className="p-4 font-bold">Recommended (RPM / fz / Ap)</th>
+                <th className="p-4 font-bold">Status</th>
+                <th className="p-4 font-bold text-right">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#E2DFD7]">
               {history.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-400 font-mono">
@@ -678,28 +682,28 @@ export const ProcessOptimization: React.FC = () => {
                   <tr
                     key={rec.optimization_id}
                     onClick={() => setSelectedModalRecord(rec)}
-                    className="hover:bg-slate-50/80 transition cursor-pointer"
+                    className="hover:bg-[#F8F7F4] transition-colors duration-200 cursor-pointer group"
                   >
-                    <td className="p-4 font-bold text-slate-900">{rec.optimization_id}</td>
-                    <td className="p-4 font-bold text-sky-700">{rec.tool_id}</td>
-                    <td className="p-4 font-bold text-slate-700">{rec.objective.replace(/_/g, ' ')}</td>
-                    <td className="p-4 text-slate-600">
+                    <td className="p-4 font-bold text-slate-900 group-hover:text-accent transition-colors">{rec.optimization_id}</td>
+                    <td className="p-4 font-bold text-accent">{rec.tool_id}</td>
+                    <td className="p-4 font-bold text-slate-700 font-display">{rec.objective.replace(/_/g, ' ')}</td>
+                    <td className="p-4 text-slate-600 data-readout">
                       {rec.current_parameters?.n} / {rec.current_parameters?.fz} / {rec.current_parameters?.Ap}
                     </td>
-                    <td className="p-4 font-bold text-sky-800">
+                    <td className="p-4 font-bold text-accent-dark data-readout">
                       {rec.recommended_parameters?.n} / {rec.recommended_parameters?.fz} / {rec.recommended_parameters?.Ap}
                     </td>
                     <td className="p-4">
-                      <span
-                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${rec.approved_by_operator
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-sky-50 text-sky-700 border-sky-200'
+                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold ${rec.approved_by_operator
+                          ? 'bg-normal-light text-normal border-normal-border'
+                          : 'bg-accent-50 text-accent border-accent-border'
                           }`}
                       >
-                        ● {rec.status}
-                      </span>
+                        {rec.approved_by_operator ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                        {rec.status}
+                      </div>
                     </td>
-                    <td className="p-4 text-right text-slate-500 font-sans">
+                    <td className="p-4 text-right text-slate-500 data-readout">
                       {rec.timestamp ? rec.timestamp.replace('T', ' ').substring(0, 16) : 'Recently'}
                     </td>
                   </tr>
@@ -714,73 +718,73 @@ export const ProcessOptimization: React.FC = () => {
       {/* 8. DETAIL MODAL */}
       {/* ============================================================ */}
       {selectedModalRecord && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-2xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-8 shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto font-sans">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E2DFD7] rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto font-sans animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-4 border-b border-[#E2DFD7]">
               <div>
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">
+                <span className="text-xs font-mono uppercase tracking-wider text-accent font-bold">
                   OPTIMIZATION AUDIT DOSSIER
                 </span>
-                <h3 className="text-2xl font-bold text-slate-900">
+                <h3 className="text-2xl font-bold font-display text-slate-900 mt-1">
                   {selectedModalRecord.optimization_id}
                 </h3>
               </div>
               <button
                 onClick={() => setSelectedModalRecord(null)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-[#F8F7F4] transition"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-4 font-mono text-xs">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="p-4 bg-[#F8F7F4] rounded-2xl border border-[#E2DFD7] shadow-2xs">
                 <span className="text-slate-400 font-bold block uppercase text-[10px]">Tool ID</span>
-                <strong className="text-slate-900 text-sm">{selectedModalRecord.tool_id}</strong>
+                <strong className="text-slate-900 text-sm mt-0.5 block">{selectedModalRecord.tool_id}</strong>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="p-4 bg-[#F8F7F4] rounded-2xl border border-[#E2DFD7] shadow-2xs">
                 <span className="text-slate-400 font-bold block uppercase text-[10px]">Machine</span>
-                <strong className="text-slate-900 text-sm">{selectedModalRecord.machine_id}</strong>
+                <strong className="text-slate-900 text-sm mt-0.5 block">{selectedModalRecord.machine_id}</strong>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="p-4 bg-[#F8F7F4] rounded-2xl border border-[#E2DFD7] shadow-2xs">
                 <span className="text-slate-400 font-bold block uppercase text-[10px]">Objective</span>
-                <strong className="text-sky-700 text-sm">{selectedModalRecord.objective}</strong>
+                <strong className="text-accent text-sm mt-0.5 block font-display">{selectedModalRecord.objective}</strong>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="p-4 bg-[#F8F7F4] rounded-2xl border border-[#E2DFD7] shadow-2xs">
                 <span className="text-slate-400 font-bold block uppercase text-[10px]">Approval Status</span>
-                <strong className="text-emerald-700 text-sm">{selectedModalRecord.status}</strong>
+                <strong className="text-normal text-sm mt-0.5 block">{selectedModalRecord.status}</strong>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 font-mono text-xs">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+              <div className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#E2DFD7] shadow-2xs space-y-2">
                 <span className="text-slate-400 font-bold block uppercase text-[10px] mb-1">Current Parameters</span>
-                <div>RPM: <strong>{selectedModalRecord.current_parameters?.n}</strong></div>
-                <div>Feed fz: <strong>{selectedModalRecord.current_parameters?.fz}</strong> mm/tooth</div>
-                <div>Depth Ap: <strong>{selectedModalRecord.current_parameters?.Ap}</strong> mm</div>
+                <div className="flex justify-between"><span>RPM:</span> <strong className="data-readout">{selectedModalRecord.current_parameters?.n}</strong></div>
+                <div className="flex justify-between"><span>Feed fz:</span> <strong className="data-readout">{selectedModalRecord.current_parameters?.fz} mm/t</strong></div>
+                <div className="flex justify-between"><span>Depth Ap:</span> <strong className="data-readout">{selectedModalRecord.current_parameters?.Ap} mm</strong></div>
               </div>
 
-              <div className="p-4 bg-sky-50 rounded-2xl border border-sky-200">
-                <span className="text-sky-700 font-bold block uppercase text-[10px] mb-1">Recommended Parameters</span>
-                <div>RPM: <strong>{selectedModalRecord.recommended_parameters?.n}</strong></div>
-                <div>Feed fz: <strong>{selectedModalRecord.recommended_parameters?.fz}</strong> mm/tooth</div>
-                <div>Depth Ap: <strong>{selectedModalRecord.recommended_parameters?.Ap}</strong> mm</div>
+              <div className="p-5 bg-accent-50 rounded-2xl border border-accent-100 shadow-2xs space-y-2">
+                <span className="text-accent-dark font-bold block uppercase text-[10px] mb-1">Recommended Parameters</span>
+                <div className="flex justify-between text-accent-dark"><span>RPM:</span> <strong className="data-readout">{selectedModalRecord.recommended_parameters?.n}</strong></div>
+                <div className="flex justify-between text-accent-dark"><span>Feed fz:</span> <strong className="data-readout">{selectedModalRecord.recommended_parameters?.fz} mm/t</strong></div>
+                <div className="flex justify-between text-accent-dark"><span>Depth Ap:</span> <strong className="data-readout">{selectedModalRecord.recommended_parameters?.Ap} mm</strong></div>
               </div>
             </div>
 
             {selectedModalRecord.explanation && (
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-slate-700 font-sans leading-relaxed">
-                <strong>Reasoning:</strong> {selectedModalRecord.explanation}
+              <div className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#E2DFD7] text-xs text-slate-700 font-sans leading-relaxed shadow-inner">
+                <strong className="text-slate-900 block mb-1">Reasoning:</strong> {selectedModalRecord.explanation}
               </div>
             )}
 
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setSelectedModalRecord(null)}
-                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold font-mono text-xs transition shadow-xs"
+                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold font-mono text-xs transition shadow-paper"
               >
                 Close Dossier
               </button>

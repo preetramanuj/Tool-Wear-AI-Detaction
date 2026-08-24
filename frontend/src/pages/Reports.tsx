@@ -3,20 +3,18 @@ import {
   FileText,
   Download,
   Calendar,
-  CheckCircle2,
   Filter,
   Layers,
   Wrench,
   TrendingUp,
   RefreshCw,
   Printer,
-  FileCode,
-  FileSpreadsheet,
   AlertCircle,
   Eye,
 } from 'lucide-react';
 import { generateReport, exportReportFile, getTools } from '../services/api';
 import { Tool } from '../types/api';
+import { SeverityBadge } from '../components/common/Severity';
 
 export const Reports: React.FC = () => {
   const [reportType, setReportType] = useState<string>('daily');
@@ -111,10 +109,10 @@ export const Reports: React.FC = () => {
   return (
     <div className="p-6 md:p-10 space-y-10 max-w-7xl mx-auto font-sans text-slate-800">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E2DFD7]">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            REPORTS
+          <h1 className="text-2xl md:text-3xl font-bold font-display text-slate-900 tracking-tight">
+            Compliance & Maintenance Reports
           </h1>
           <p className="text-sm text-slate-500 font-mono mt-1">
             Standardized Compliance Documentation & Maintenance Export Center
@@ -126,14 +124,14 @@ export const Reports: React.FC = () => {
           <button
             onClick={() => handleDownloadFile(reportType, 'pdf')}
             disabled={downloading !== null}
-            className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold transition shadow-xs disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-xl font-bold transition shadow-paper disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5" />
             <span>[ Download PDF ]</span>
           </button>
           <button
             onClick={() => window.print()}
-            className="p-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl transition shadow-2xs"
+            className="p-2 bg-white border border-[#E2DFD7] hover:bg-[#F8F7F4] text-slate-700 rounded-xl transition shadow-2xs"
             title="Print"
           >
             <Printer className="w-4 h-4" />
@@ -141,56 +139,55 @@ export const Reports: React.FC = () => {
         </div>
       </div>
 
-      {/* 5 SIMPLE REPORT CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* 5 REPORT CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {reportCards.map((rc) => {
           const Icon = rc.icon;
           const isSelected = reportType === rc.id;
           return (
             <div
               key={rc.id}
-              className={`bg-white border rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-4 transition ${
-                isSelected ? 'border-sky-600 ring-2 ring-sky-600/20' : 'border-slate-200'
+              className={`bg-white border rounded-3xl p-6 shadow-paper flex flex-col justify-between space-y-4 transition ${
+                isSelected ? 'border-accent ring-2 ring-accent/20' : 'border-[#E2DFD7] hover:border-slate-400'
               }`}
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="p-3 bg-sky-50 text-sky-700 rounded-xl">
+                  <div className="p-3 bg-accent-50 text-accent rounded-xl border border-accent-100">
                     <Icon className="w-5 h-5" />
                   </div>
                   {isSelected && (
-                    <span className="text-[10px] font-mono font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
-                      ACTIVE VIEW
+                    <span className="text-[10px] font-mono font-bold text-normal bg-normal-light px-2.5 py-0.5 rounded-md border border-normal-border">
+                      ● Active Template
                     </span>
                   )}
                 </div>
-
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 font-sans">
-                    {rc.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-sans mt-1 leading-relaxed">
-                    {rc.desc}
-                  </p>
+                  <h3 className="font-bold text-lg font-display text-slate-900">{rc.title}</h3>
+                  <p className="text-xs text-slate-500 font-sans mt-1 leading-relaxed">{rc.desc}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 font-mono text-xs">
+              <div className="flex items-center gap-2 pt-2 border-t border-[#E2DFD7] font-mono text-xs">
                 <button
                   onClick={() => handleGenerateReport(rc.id)}
-                  disabled={loading}
-                  className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold transition shadow-2xs"
+                  className="flex-1 py-2 px-3 bg-accent-50 hover:bg-accent-100 text-accent font-bold rounded-xl transition"
                 >
-                  <Eye className="w-3.5 h-3.5 text-slate-600" />
-                  <span>[ View ]</span>
+                  Generate View
                 </button>
                 <button
                   onClick={() => handleDownloadFile(rc.id, 'pdf')}
-                  disabled={downloading !== null}
-                  className="flex items-center justify-center gap-1.5 py-2 px-3 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl font-bold transition shadow-2xs"
+                  className="p-2 text-slate-600 hover:text-slate-900 border border-[#E2DFD7] rounded-xl hover:bg-[#F8F7F4] transition"
+                  title="PDF"
                 >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>[ Export ]</span>
+                  PDF
+                </button>
+                <button
+                  onClick={() => handleDownloadFile(rc.id, 'csv')}
+                  className="p-2 text-slate-600 hover:text-slate-900 border border-[#E2DFD7] rounded-xl hover:bg-[#F8F7F4] transition"
+                  title="CSV"
+                >
+                  CSV
                 </button>
               </div>
             </div>
@@ -198,32 +195,61 @@ export const Reports: React.FC = () => {
         })}
       </div>
 
-      {/* ON-SCREEN REPORT DISPLAY */}
+      {/* FILTER BAR */}
+      <div className="bg-white border border-[#E2DFD7] rounded-2xl p-4 shadow-paper flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
+        <div className="flex items-center gap-3">
+          <Filter className="w-4 h-4 text-accent" />
+          <span className="text-slate-500 font-bold">Scope Filter:</span>
+          <select
+            value={selectedToolId}
+            onChange={(e) => setSelectedToolId(e.target.value)}
+            className="px-3 py-1.5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-xl text-slate-900 font-bold"
+          >
+            <option value="ALL">All Tools (Fleet-Wide)</option>
+            {tools.map((t) => (
+              <option key={t.tool_id} value={t.tool_id}>
+                {t.tool_id} ({t.tool_name})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          onClick={() => handleGenerateReport()}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-xl font-bold transition shadow-paper"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span>[ Update Report Data ]</span>
+        </button>
+      </div>
+
+      {/* GENERATED REPORT VIEWER */}
       {loading ? (
-        <div className="bg-white border border-slate-200 rounded-2xl p-16 flex flex-col items-center justify-center text-center shadow-xs">
-          <RefreshCw className="w-8 h-8 text-sky-600 animate-spin mb-3" />
-          <div className="text-sm font-semibold text-slate-800">Compiling Report Data...</div>
+        <div className="bg-white border border-[#E2DFD7] rounded-3xl p-16 flex flex-col items-center justify-center text-center shadow-paper">
+          <RefreshCw className="w-8 h-8 text-accent animate-spin mb-3" />
+          <div className="text-sm font-semibold font-display text-slate-800">Compiling Report Data...</div>
         </div>
       ) : error ? (
-        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 text-rose-800 text-xs font-mono flex items-center gap-3">
+        <div className="bg-critical-light border border-critical-border rounded-2xl p-6 text-critical text-xs font-mono flex items-center gap-3">
           <AlertCircle className="w-5 h-5 shrink-0" />
           <div>{error}</div>
         </div>
       ) : reportData ? (
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-xs space-y-6 print:border-none print:shadow-none">
-          <div className="pb-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-6 print:border-none print:shadow-none">
+          <div className="pb-4 border-b border-[#E2DFD7] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-sky-600 font-bold">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-accent font-bold">
                 AUDIT REPORT
               </span>
-              <h2 className="text-2xl font-bold text-slate-900 font-sans mt-0.5">
+              <h2 className="text-2xl font-bold font-display text-slate-900 mt-0.5">
                 {reportData.report_title || 'Industrial Tool Wear & Compliance Audit'}
               </h2>
-              <div className="text-xs text-slate-500 font-mono mt-1">
+              <div className="text-xs text-slate-500 font-mono mt-1 data-readout">
                 Generated: {reportData.generated_at ? new Date(reportData.generated_at).toLocaleString() : new Date().toLocaleString()}
               </div>
             </div>
-            <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono text-xs font-bold self-start sm:self-auto">
+            <span className="px-3 py-1 rounded-full bg-normal-light text-normal border border-normal-border font-mono text-xs font-bold self-start sm:self-auto">
               ● VERIFIED RECORD
             </span>
           </div>
@@ -234,7 +260,7 @@ export const Reports: React.FC = () => {
               <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
                 1. Executive Summary
               </h3>
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl font-sans text-xs text-slate-800 leading-relaxed">
+              <div className="p-4 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl font-sans text-xs text-slate-800 leading-relaxed">
                 {typeof reportData.executive_summary === 'string'
                   ? reportData.executive_summary
                   : JSON.stringify(reportData.executive_summary)}
@@ -248,9 +274,9 @@ export const Reports: React.FC = () => {
               <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
                 2. Itemized Inspection Records ({reportData.records.length})
               </h3>
-              <div className="overflow-x-auto border border-slate-200 rounded-xl">
+              <div className="overflow-x-auto border border-[#E2DFD7] rounded-2xl">
                 <table className="w-full text-left text-xs font-mono">
-                  <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] border-b border-slate-200">
+                  <thead className="bg-[#F8F7F4] text-slate-600 uppercase text-[10px] border-b border-[#E2DFD7]">
                     <tr>
                       <th className="p-3">Record ID</th>
                       <th className="p-3">Tool</th>
@@ -261,25 +287,23 @@ export const Reports: React.FC = () => {
                       <th className="p-3">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[#E2DFD7]">
                     {reportData.records.slice(0, 10).map((rec: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-slate-50">
+                      <tr key={idx} className="hover:bg-[#FBFBF9]">
                         <td className="p-3 font-bold text-slate-900">{rec.inspection_id || `REC-${idx + 1}`}</td>
-                        <td className="p-3 text-sky-700 font-bold">{rec.tool_id || 'T-014'}</td>
+                        <td className="p-3 text-accent font-bold">{rec.tool_id || 'T-014'}</td>
                         <td className="p-3 text-slate-600">{rec.machine_id || 'CNC-01'}</td>
-                        <td className="p-3 font-bold text-slate-900">
+                        <td className="p-3 font-bold text-slate-900 data-readout">
                           {rec.wear_vb_mm !== undefined ? `${rec.wear_vb_mm.toFixed(2)} mm` : '-'}
                         </td>
-                        <td className="p-3 font-bold text-emerald-600">
+                        <td className="p-3 font-bold text-normal data-readout">
                           {rec.health_score !== undefined ? `${rec.health_score}%` : '100%'}
                         </td>
-                        <td className="p-3 text-sky-600 font-semibold">
+                        <td className="p-3 text-accent font-semibold data-readout">
                           {rec.rul_cycles !== undefined ? `${rec.rul_cycles} cyc` : 'N/A'}
                         </td>
                         <td className="p-3">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            {rec.health_status || 'HEALTHY'}
-                          </span>
+                          <SeverityBadge level={rec.health_status || 'HEALTHY'} size="sm" />
                         </td>
                       </tr>
                     ))}
@@ -290,8 +314,8 @@ export const Reports: React.FC = () => {
           )}
 
           {/* Recommendations */}
-          <div className="p-5 bg-sky-50 border border-sky-200 rounded-xl space-y-1">
-            <div className="text-xs font-mono font-bold text-sky-800 uppercase">
+          <div className="p-5 bg-accent-50 border border-accent-200 rounded-2xl space-y-1">
+            <div className="text-xs font-mono font-bold text-accent uppercase">
               3. Recommended Preventive Maintenance Action
             </div>
             <p className="text-xs text-slate-800 font-sans leading-relaxed">

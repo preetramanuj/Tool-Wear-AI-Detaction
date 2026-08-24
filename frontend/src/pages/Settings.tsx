@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { getModelsStatus } from '../services/api';
 import { ModelsStatusResponse } from '../types/api';
+import { SeverityBadge } from '../components/common/Severity';
 
 export const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'general' | 'thresholds' | 'notifications' | 'models' | 'system'>('general');
@@ -83,10 +84,10 @@ export const Settings: React.FC = () => {
   return (
     <div className="p-6 md:p-10 space-y-10 max-w-7xl mx-auto font-sans text-slate-800">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E2DFD7]">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            SETTINGS & SYSTEM CONFIGURATION
+          <h1 className="text-2xl md:text-3xl font-bold font-display text-slate-900 tracking-tight">
+            Settings & System Configuration
           </h1>
           <p className="text-sm text-slate-500 font-mono mt-1">
             Configure operational thresholds, alerts, model diagnostic engines, and storage parameters
@@ -94,46 +95,46 @@ export const Settings: React.FC = () => {
         </div>
 
         {saved && (
-          <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-300 px-4 py-2 rounded-xl text-xs font-bold font-mono">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <div className="flex items-center gap-2 bg-normal-light text-normal border border-normal-border px-4 py-2 rounded-xl text-xs font-bold font-mono shadow-paper">
+            <CheckCircle2 className="w-4 h-4 text-normal" />
             <span>Settings Saved Successfully</span>
           </div>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 font-mono text-xs overflow-x-auto">
+      <div className="flex bg-[#F0EFEA] p-1.5 rounded-2xl border border-[#E2DFD7] font-mono text-xs overflow-x-auto">
         <button
           onClick={() => setActiveTab('general')}
-          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'general' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'general' ? 'bg-white text-slate-900 shadow-paper' : 'text-slate-600 hover:text-slate-900'
             }`}
         >
           General
         </button>
         <button
           onClick={() => setActiveTab('thresholds')}
-          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'thresholds' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'thresholds' ? 'bg-white text-slate-900 shadow-paper' : 'text-slate-600 hover:text-slate-900'
             }`}
         >
           Thresholds
         </button>
         <button
           onClick={() => setActiveTab('notifications')}
-          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'notifications' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'notifications' ? 'bg-white text-slate-900 shadow-paper' : 'text-slate-600 hover:text-slate-900'
             }`}
         >
           Notifications
         </button>
         <button
           onClick={() => setActiveTab('models')}
-          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'models' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'models' ? 'bg-white text-slate-900 shadow-paper' : 'text-slate-600 hover:text-slate-900'
             }`}
         >
           Models
         </button>
         <button
           onClick={() => setActiveTab('system')}
-          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'system' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          className={`px-4 py-2 rounded-xl font-bold transition ${activeTab === 'system' ? 'bg-white text-slate-900 shadow-paper' : 'text-slate-600 hover:text-slate-900'
             }`}
         >
           System
@@ -144,8 +145,8 @@ export const Settings: React.FC = () => {
       <form onSubmit={handleSave} className="space-y-8">
         {/* 1. GENERAL TAB */}
         {activeTab === 'general' && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
-            <h2 className="text-lg font-bold text-slate-900 font-sans pb-3 border-b border-slate-100">
+          <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-6">
+            <h2 className="text-lg font-bold font-display text-slate-900 pb-3 border-b border-[#E2DFD7]">
               General Plant Configuration
             </h2>
 
@@ -155,7 +156,7 @@ export const Settings: React.FC = () => {
                 <input
                   type="text"
                   defaultValue="Precision Machining Plant #01"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold"
+                  className="w-full px-4 py-2.5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-xl text-slate-900 font-bold"
                 />
               </div>
 
@@ -164,7 +165,7 @@ export const Settings: React.FC = () => {
                 <input
                   type="text"
                   defaultValue="CNC-LATHE-01"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold"
+                  className="w-full px-4 py-2.5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-xl text-slate-900 font-bold"
                 />
               </div>
 
@@ -173,7 +174,7 @@ export const Settings: React.FC = () => {
                 <input
                   type="text"
                   defaultValue="₹"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold"
+                  className="w-full px-4 py-2.5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-xl text-slate-900 font-bold"
                 />
               </div>
 
@@ -182,7 +183,7 @@ export const Settings: React.FC = () => {
                 <input
                   type="number"
                   defaultValue={50}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold"
+                  className="w-full px-4 py-2.5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-xl text-slate-900 font-bold"
                 />
               </div>
             </div>
@@ -191,36 +192,36 @@ export const Settings: React.FC = () => {
 
         {/* 2. THRESHOLDS TAB */}
         {activeTab === 'thresholds' && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
-            <h2 className="text-lg font-bold text-slate-900 font-sans pb-3 border-b border-slate-100">
+          <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-6">
+            <h2 className="text-lg font-bold font-display text-slate-900 pb-3 border-b border-[#E2DFD7]">
               Tool Degradation Warning & Critical Limits
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 font-mono text-xs">
-              <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="p-5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl space-y-2">
                 <div className="flex justify-between">
                   <span className="font-bold text-slate-700 uppercase">Warning Threshold</span>
-                  <strong className="text-amber-600">{wearWarningUm} µm (0.22 mm)</strong>
+                  <strong className="text-warning data-readout">{wearWarningUm} µm (0.22 mm)</strong>
                 </div>
                 <input
                   type="number"
                   value={wearWarningUm}
                   onChange={(e) => setWearWarningUm(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 font-bold"
+                  className="w-full px-3 py-2 bg-white border border-[#E2DFD7] rounded-lg text-slate-900 font-bold"
                 />
                 <p className="text-[11px] text-slate-500 font-sans">Triggers maintenance scheduling notification.</p>
               </div>
 
-              <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="p-5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl space-y-2">
                 <div className="flex justify-between">
                   <span className="font-bold text-slate-700 uppercase">Critical ISO EOL Limit</span>
-                  <strong className="text-rose-600">{wearCriticalUm} µm (0.30 mm)</strong>
+                  <strong className="text-critical data-readout">{wearCriticalUm} µm (0.30 mm)</strong>
                 </div>
                 <input
                   type="number"
                   value={wearCriticalUm}
                   onChange={(e) => setWearCriticalUm(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 font-bold"
+                  className="w-full px-3 py-2 bg-white border border-[#E2DFD7] rounded-lg text-slate-900 font-bold"
                 />
                 <p className="text-[11px] text-slate-500 font-sans">Triggers immediate tool replacement alarm.</p>
               </div>
@@ -230,18 +231,18 @@ export const Settings: React.FC = () => {
 
         {/* 3. NOTIFICATIONS TAB */}
         {activeTab === 'notifications' && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
-            <h2 className="text-lg font-bold text-slate-900 font-sans pb-3 border-b border-slate-100">
+          <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-6">
+            <h2 className="text-lg font-bold font-display text-slate-900 pb-3 border-b border-[#E2DFD7]">
               Notification Channels
             </h2>
 
             <div className="space-y-4 font-mono text-xs">
-              <label className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
+              <label className="flex items-center gap-3 p-4 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl cursor-pointer">
                 <input
                   type="checkbox"
                   checked={emailAlerts}
                   onChange={(e) => setEmailAlerts(e.target.checked)}
-                  className="w-4 h-4 text-sky-600 rounded"
+                  className="w-4 h-4 text-accent rounded"
                 />
                 <div>
                   <div className="font-bold text-slate-900">Email Notifications for Critical Breaches</div>
@@ -249,12 +250,12 @@ export const Settings: React.FC = () => {
                 </div>
               </label>
 
-              <label className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
+              <label className="flex items-center gap-3 p-4 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl cursor-pointer">
                 <input
                   type="checkbox"
                   checked={webhookAlerts}
                   onChange={(e) => setWebhookAlerts(e.target.checked)}
-                  className="w-4 h-4 text-sky-600 rounded"
+                  className="w-4 h-4 text-accent rounded"
                 />
                 <div>
                   <div className="font-bold text-slate-900">Webhook Integration (MES / SCADA)</div>
@@ -265,11 +266,11 @@ export const Settings: React.FC = () => {
           </div>
         )}
 
-        {/* 4. MODELS TAB (TECHNICAL INFORMATION STAYS HERE) */}
+        {/* 4. MODELS TAB */}
         {activeTab === 'models' && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
-            <div className="pb-3 border-b border-slate-100">
-              <h2 className="text-lg font-bold text-slate-900 font-sans">
+          <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-6">
+            <div className="pb-3 border-b border-[#E2DFD7]">
+              <h2 className="text-lg font-bold font-display text-slate-900">
                 AI Diagnostic Engine Models
               </h2>
               <p className="text-xs text-slate-500 font-mono mt-0.5">
@@ -283,15 +284,13 @@ export const Settings: React.FC = () => {
                 return (
                   <div
                     key={m.id}
-                    className="border border-slate-200 rounded-xl p-4 bg-slate-50/70 hover:bg-slate-50 transition space-y-2 cursor-pointer"
+                    className="border border-[#E2DFD7] rounded-2xl p-4 bg-[#F8F7F4] hover:bg-white transition space-y-2 cursor-pointer shadow-2xs"
                     onClick={() => setExpandedModel(isExpanded ? null : m.id)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <span className="font-bold text-sm text-slate-900 font-sans">{m.name}</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          ✓ Loaded
-                        </span>
+                        <span className="font-bold text-sm text-slate-900 font-display">{m.name}</span>
+                        <SeverityBadge level="NORMAL" size="sm" />
                       </div>
                       <button type="button" className="text-slate-400 p-1">
                         {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -303,10 +302,10 @@ export const Settings: React.FC = () => {
                     </div>
 
                     {isExpanded && (
-                      <div className="pt-3 border-t border-slate-200 space-y-1.5 text-[11px] text-slate-700">
+                      <div className="pt-3 border-t border-[#E2DFD7] space-y-1.5 text-[11px] text-slate-700">
                         <div><span className="text-slate-400 font-bold">Framework:</span> {m.framework}</div>
-                        <div><span className="text-slate-400 font-bold">Weights Path:</span> <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-900">{m.weights}</code></div>
-                        <div><span className="text-slate-400 font-bold">Status:</span> <strong className="text-emerald-700">Active & Serving on FastAPI</strong></div>
+                        <div><span className="text-slate-400 font-bold">Weights Path:</span> <code className="bg-[#E2DFD7] px-1 py-0.5 rounded text-slate-900">{m.weights}</code></div>
+                        <div><span className="text-slate-400 font-bold">Status:</span> <strong className="text-normal">Active & Serving on FastAPI</strong></div>
                       </div>
                     )}
                   </div>
@@ -318,27 +317,27 @@ export const Settings: React.FC = () => {
 
         {/* 5. SYSTEM TAB */}
         {activeTab === 'system' && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
-            <h2 className="text-lg font-bold text-slate-900 font-sans pb-3 border-b border-slate-100">
+          <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-6">
+            <h2 className="text-lg font-bold font-display text-slate-900 pb-3 border-b border-[#E2DFD7]">
               System Health & Database
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="p-4 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl">
                 <div className="text-slate-400 font-bold uppercase text-[10px]">Database Engine</div>
-                <div className="text-base font-bold text-slate-900 mt-1">PostgreSQL</div>
+                <div className="text-base font-bold font-display text-slate-900 mt-1">PostgreSQL</div>
                 <div className="text-[10px] text-slate-500 mt-0.5">toolguard.db (Mounted)</div>
               </div>
 
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="p-4 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl">
                 <div className="text-slate-400 font-bold uppercase text-[10px]">FastAPI Backend</div>
-                <div className="text-base font-bold text-emerald-600 mt-1">Online (Uvicorn)</div>
+                <div className="text-base font-bold font-display text-normal mt-1">Online (Uvicorn)</div>
                 <div className="text-[10px] text-slate-500 mt-0.5">Port 8000 • CORS Enabled</div>
               </div>
 
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="p-4 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl">
                 <div className="text-slate-400 font-bold uppercase text-[10px]">Image Storage</div>
-                <div className="text-base font-bold text-slate-900 mt-1">Local /storage/</div>
+                <div className="text-base font-bold font-display text-slate-900 mt-1">Local /storage/</div>
                 <div className="text-[10px] text-slate-500 mt-0.5">Uploaded & Processed HUD</div>
               </div>
             </div>
@@ -346,10 +345,10 @@ export const Settings: React.FC = () => {
         )}
 
         {/* Save Button */}
-        <div className="flex justify-end pt-4 border-t border-slate-200">
+        <div className="flex justify-end pt-4 border-t border-[#E2DFD7]">
           <button
             type="submit"
-            className="flex items-center gap-2 px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold font-mono text-xs transition shadow-xs"
+            className="flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-hover text-white rounded-xl font-bold font-mono text-xs transition shadow-paper"
           >
             <Save className="w-4 h-4" />
             <span>Save Configuration</span>
@@ -361,3 +360,4 @@ export const Settings: React.FC = () => {
 };
 
 export default Settings;
+

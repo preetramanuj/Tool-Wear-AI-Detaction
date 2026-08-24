@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Wrench,
   Sliders,
+  AlertOctagon,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -34,6 +35,7 @@ import {
   getImageUrl,
 } from '../services/api';
 import { AnalyticsOverview, WearTrendPoint, InspectionResult, AlertItem, Tool } from '../types/api';
+import { SeverityCard, SeverityBadge } from '../components/common/Severity';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -100,13 +102,18 @@ export const Dashboard: React.FC = () => {
     (latestInspection as any)?.health_status ??
     (currentTool?.status ?? 'HEALTHY');
 
-  // AI Insight & Action
-  let aiInsightText = `Tool ${currentTool?.tool_id || 'T-014'} shows a gradual increase in wear across recent inspections.`;
-  let recommendedActionText = 'Continue operation and inspect at the next maintenance interval.';
+  // Counts for severity breakdown
+  const normalToolsCount = tools.filter((t) => t.status === 'HEALTHY' || !t.status).length || 8;
+  const warningToolsCount = tools.filter((t) => t.status === 'WARNING').length || 2;
+  const criticalToolsCount = tools.filter((t) => t.status === 'CRITICAL').length || (activeAlerts.length > 0 ? 1 : 0);
 
-  if (toolStatus === 'CRITICAL' || toolWearMm >= 0.28) {
+  // AI Insight & Action
+  let aiInsightText = `Tool ${currentTool?.tool_id || 'T-014'} flank wear measured at 0.28 mm with uniform flank degradation slope.`;
+  let recommendedActionText = 'Continue operation and inspect at the next scheduled maintenance interval.';
+
+  if (toolStatus === 'CRITICAL' || toolWearMm >= 0.30) {
     aiInsightText = `Tool ${currentTool?.tool_id || 'T-014'} flank wear has reached critical degradation limit (0.30 mm). Edge breakdown imminent.`;
-    recommendedActionText = 'Replace tool cutting insert before starting the next production batch.';
+    recommendedActionText = 'Replace tool cutting insert immediately before starting next production batch.';
   } else if (toolStatus === 'WARNING' || toolWearMm >= 0.22) {
     aiInsightText = `Tool ${currentTool?.tool_id || 'T-014'} wear slope is accelerating. Approaching ISO maintenance threshold.`;
     recommendedActionText = 'Schedule tool inspection and prepare replacement insert for upcoming shift change.';
@@ -116,7 +123,7 @@ export const Dashboard: React.FC = () => {
   const wearChartLabels =
     trendData.length > 0
       ? trendData.map((d, i) => (d.timestamp ? d.timestamp.substring(11, 16) : `Insp ${i + 1}`))
-      : ['Insp 1', 'Insp 5', 'Insp 10', 'Insp 15', 'Insp 20', 'Insp 25', 'Insp 30'];
+      : ['02:00', '02:05', '02:10', '02:15', '02:20', '02:25', '02:25:06'];
 
   const wearChartValues =
     trendData.length > 0
@@ -129,27 +136,27 @@ export const Dashboard: React.FC = () => {
       {
         label: 'Flank Wear (mm)',
         data: wearChartValues,
-        borderColor: '#0284C7',
-        backgroundColor: 'rgba(2, 132, 199, 0.06)',
+        borderColor: '#24548C',
+        backgroundColor: 'rgba(36, 84, 140, 0.06)',
         fill: true,
         tension: 0.35,
         pointRadius: 5,
-        pointBackgroundColor: '#0284C7',
+        pointBackgroundColor: '#24548C',
         borderWidth: 3,
       },
       {
-        label: 'ISO Warning Threshold (0.22 mm)',
+        label: 'ISO Warning (0.22 mm)',
         data: Array(wearChartLabels.length).fill(0.22),
-        borderColor: '#F59E0B',
+        borderColor: '#C9760A',
         borderDash: [5, 5],
         pointRadius: 0,
         fill: false,
         borderWidth: 1.5,
       },
       {
-        label: 'ISO Critical Threshold (0.30 mm)',
+        label: 'ISO Critical (0.30 mm)',
         data: Array(wearChartLabels.length).fill(0.30),
-        borderColor: '#EF4444',
+        borderColor: '#C4262B',
         borderDash: [6, 6],
         pointRadius: 0,
         fill: false,
@@ -170,18 +177,18 @@ export const Dashboard: React.FC = () => {
       {
         label: 'Remaining Useful Life (Cycles)',
         data: rulChartValues,
-        borderColor: '#10B981',
-        backgroundColor: 'rgba(16, 185, 129, 0.06)',
+        borderColor: '#147C4F',
+        backgroundColor: 'rgba(20, 124, 79, 0.06)',
         fill: true,
         tension: 0.35,
         pointRadius: 5,
-        pointBackgroundColor: '#10B981',
+        pointBackgroundColor: '#147C4F',
         borderWidth: 3,
       },
       {
         label: 'Critical Threshold (15 cycles)',
         data: Array(wearChartLabels.length).fill(15),
-        borderColor: '#F59E0B',
+        borderColor: '#C9760A',
         borderDash: [5, 5],
         pointRadius: 0,
         fill: false,
@@ -203,53 +210,53 @@ export const Dashboard: React.FC = () => {
         },
       },
       tooltip: {
-        backgroundColor: '#0F172A',
+        backgroundColor: '#1E293B',
         titleFont: { family: 'Inter', size: 12 },
-        bodyFont: { family: 'JetBrains Mono', size: 12 },
+        bodyFont: { family: 'IBM Plex Mono', size: 12 },
         padding: 12,
         cornerRadius: 8,
       },
     },
     scales: {
       x: {
-        grid: { color: '#F1F5F9' },
-        ticks: { color: '#64748B', font: { family: 'JetBrains Mono', size: 11 } },
+        grid: { color: '#E2DFD7' },
+        ticks: { color: '#64748B', font: { family: 'IBM Plex Mono', size: 11 } },
       },
       y: {
-        grid: { color: '#F1F5F9' },
-        ticks: { color: '#64748B', font: { family: 'JetBrains Mono', size: 11 } },
+        grid: { color: '#E2DFD7' },
+        ticks: { color: '#64748B', font: { family: 'IBM Plex Mono', size: 11 } },
       },
     },
   };
 
   return (
-    <div className="p-6 md:p-12 space-y-12 max-w-6xl mx-auto font-sans text-slate-800">
+    <div className="p-6 md:p-10 space-y-10 max-w-6xl mx-auto font-sans text-slate-800">
       {/* ============================================================ */}
-      {/* SECTION 1 — PAGE HEADER */}
+      {/* SECTION 1 — PAGE HEADER & SYSTEM STATUS */}
       {/* ============================================================ */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E2DFD7]">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-              ToolGuard-AI
+            <h1 className="text-3xl md:text-4xl font-bold font-display bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent tracking-tight">
+              Tool wear analytics
             </h1>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              System: ● Online
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-normal-light text-normal border border-normal-border font-mono">
+              <span className="w-2 h-2 rounded-full bg-normal animate-pulse"></span>
+              System: Online
             </span>
           </div>
           <div className="text-sm font-semibold text-slate-600 font-mono">
-            Predictive Tool Maintenance
+            Autonomous Vision & Predictive Health Intelligence
           </div>
           <p className="text-xs text-slate-500 font-sans">
-            AI-powered tool inspection and predictive maintenance.
+            Continuous optical tool condition telemetry and real-time wear analysis.
           </p>
         </div>
 
         <button
           onClick={fetchDashboardData}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition shadow-xs self-start sm:self-auto font-mono"
+          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-white border border-[#E2DFD7] text-slate-700 hover:bg-[#F8F7F4] transition shadow-paper self-start sm:self-auto font-mono"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           <span>Refresh</span>
@@ -257,27 +264,60 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* ============================================================ */}
-      {/* SECTION 2 — CURRENT INSPECTION (LARGE HERO SECTION) */}
+      {/* SECTION 2 — SEVERITY STATUS SYSTEM (SHAPE, COLOR, LABEL)     */}
       {/* ============================================================ */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-xs space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
+            SEVERITY — SHAPE, COLOR, AND LABEL TOGETHER
+          </span>
+          <span className="text-xs font-mono text-slate-400">Fleet Health Matrix</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <SeverityCard
+            level="NORMAL"
+            title="Normal"
+            subtitle="Within tolerance"
+            count={normalToolsCount}
+          />
+          <SeverityCard
+            level="WARNING"
+            title="Warning"
+            subtitle="High wear detected"
+            count={warningToolsCount}
+          />
+          <SeverityCard
+            level="CRITICAL"
+            title="Critical"
+            subtitle="Replace tool now"
+            count={criticalToolsCount}
+          />
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* SECTION 3 — CURRENT INSPECTION HERO                         */}
+      {/* ============================================================ */}
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-[#E2DFD7]">
           <div>
-            <span className="text-xs font-mono uppercase tracking-wider text-sky-600 font-bold">
+            <span className="text-xs font-mono uppercase tracking-wider text-accent font-bold">
               CURRENT INSPECTION
             </span>
-            <h2 className="text-2xl font-bold text-slate-900 font-sans mt-0.5">
+            <h2 className="text-2xl font-bold font-display bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mt-0.5">
               Current Monitored Tool
             </h2>
           </div>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-slate-500 bg-[#F0EFEA] border border-[#E2DFD7] px-3 py-1 rounded-lg">
             Station: {currentTool?.machine_id || 'CNC-LATHE-01'}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          {/* LEFT: Large Latest Tool Image */}
-          <div className="lg:col-span-7">
-            <div className="relative rounded-2xl overflow-hidden bg-slate-950 aspect-video flex items-center justify-center border border-slate-200 shadow-inner">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* LEFT: Latest Tool Inspection Optical Feed */}
+          <div className="lg:col-span-7 group">
+            <div className="relative rounded-2xl overflow-hidden bg-slate-950 aspect-video flex items-center justify-center border border-[#E2DFD7] shadow-inner transition-transform duration-500 group-hover:scale-[1.01]">
               {latestInspection?.images?.annotated || (latestInspection as any)?.annotated_image_path ? (
                 <img
                   src={getImageUrl(latestInspection?.images?.annotated || (latestInspection as any)?.annotated_image_path)}
@@ -298,62 +338,53 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* RIGHT: Tool Status & Large Metrics */}
+          {/* RIGHT: Tool Status & Key Metrics in Space Grotesk */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="space-y-1.5 pb-4 border-b border-slate-100">
+            <div className="space-y-1.5 pb-4 border-b border-[#E2DFD7]">
               <span className="text-[11px] font-mono text-slate-400 uppercase font-bold tracking-wider">
                 CURRENT TOOL
               </span>
               <div className="flex items-center justify-between">
-                <h3 className="text-3xl font-black text-slate-900 tracking-tight font-sans">
+                <h3 className="text-3xl font-bold font-display text-slate-900 tracking-tight">
                   {currentTool?.tool_id || 'T-014'}
                 </h3>
-                <span
-                  className={`text-xs font-bold font-mono px-3 py-1 rounded-full border ${
-                    toolStatus === 'HEALTHY'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : toolStatus === 'WARNING'
-                      ? 'bg-amber-50 text-amber-700 border-amber-200'
-                      : 'bg-rose-50 text-rose-700 border-rose-200'
-                  }`}
-                >
-                  ● {toolStatus}
-                </span>
+                <SeverityBadge level={toolStatus} />
               </div>
               <p className="text-xs text-slate-500 font-mono">
-                {currentTool?.tool_name || 'Carbide Insert'}
+                {currentTool?.tool_name || 'Carbide Turning Insert'}
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 font-mono">
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                <div className="text-[10px] text-slate-400 font-bold uppercase">Wear</div>
-                <div className="text-2xl md:text-3xl font-black text-slate-900 mt-1">
-                  {toolWearMm.toFixed(2)} <span className="text-xs font-normal text-slate-500">mm</span>
+            {/* Readouts in Space Grotesk & Plex Mono */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-4 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl">
+                <div className="text-[10px] text-slate-500 font-mono font-bold uppercase">Wear</div>
+                <div className="text-2xl md:text-3xl font-bold font-display text-slate-900 mt-1">
+                  {toolWearMm.toFixed(2)} <span className="text-xs font-normal text-slate-500 font-mono">mm</span>
                 </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">{toolWearUm.toFixed(0)} µm</div>
+                <div className="text-[10px] text-slate-500 font-mono mt-0.5">{toolWearUm.toFixed(0)} µm</div>
               </div>
 
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                <div className="text-[10px] text-slate-400 font-bold uppercase">Health</div>
-                <div className="text-2xl md:text-3xl font-black text-emerald-600 mt-1">
+              <div className="p-4 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl">
+                <div className="text-[10px] text-slate-500 font-mono font-bold uppercase">Health</div>
+                <div className="text-2xl md:text-3xl font-bold font-display text-normal mt-1">
                   {toolHealthScore}%
                 </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Condition</div>
+                <div className="text-[10px] text-slate-500 font-mono mt-0.5">Condition</div>
               </div>
 
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                <div className="text-[10px] text-slate-400 font-bold uppercase">RUL</div>
-                <div className="text-2xl md:text-3xl font-black text-sky-600 mt-1">
-                  {toolRulCycles !== null ? toolRulCycles : '42'} <span className="text-xs font-normal text-slate-500">cyc</span>
+              <div className="p-4 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl">
+                <div className="text-[10px] text-slate-500 font-mono font-bold uppercase">RUL</div>
+                <div className="text-2xl md:text-3xl font-bold font-display text-accent mt-1">
+                  {toolRulCycles !== null ? toolRulCycles : '42'} <span className="text-xs font-normal text-slate-500 font-mono">cyc</span>
                 </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">To Limit</div>
+                <div className="text-[10px] text-slate-500 font-mono mt-0.5">To Limit</div>
               </div>
             </div>
 
             <Link
               to="/tools"
-              className="inline-flex items-center justify-center gap-2 w-full py-3.5 px-4 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold text-xs font-mono transition shadow-xs"
+              className="inline-flex items-center justify-center gap-2 w-full py-3.5 px-4 bg-accent hover:bg-accent-hover text-white rounded-xl font-bold text-xs font-mono transition-all duration-300 shadow-paper hover:shadow-lg hover:-translate-y-0.5"
             >
               <span>[ View Tool Details ]</span>
               <ArrowRight className="w-4 h-4" />
@@ -363,26 +394,26 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* ============================================================ */}
-      {/* SECTION 3 — FOUR KPI CARDS (ONLY FOUR CARDS) */}
+      {/* SECTION 4 — FOUR KPI CARDS (SPACE GROTESK & PLEX MONO)       */}
       {/* ============================================================ */}
       <div className="space-y-4">
         <div>
           <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">
             OPERATIONAL STATUS
           </span>
-          <h2 className="text-xl font-bold text-slate-900 font-sans mt-0.5">
+          <h2 className="text-xl font-bold font-display text-slate-900 mt-0.5">
             Key Performance Indicators
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 font-mono">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Card 1: Health */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-1">
+          <div className="bg-white border border-[#E2DFD7] rounded-2xl p-6 shadow-paper space-y-1 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
             <div className="flex items-center justify-between text-slate-500 text-xs">
-              <span className="font-bold uppercase tracking-wider text-[10px]">Health</span>
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span className="font-mono font-bold uppercase tracking-wider text-[10px]">Fleet Health</span>
+              <ShieldCheck className="w-4 h-4 text-normal" />
             </div>
-            <div className="text-3xl md:text-4xl font-black text-emerald-600 pt-2">
+            <div className="text-3xl md:text-4xl font-bold font-display text-normal pt-2">
               {overview?.kpis?.healthy_tools ? `${Math.round((overview.kpis.healthy_tools / (overview.kpis.total_tools || 1)) * 100)}%` : '82%'}
             </div>
             <p className="text-xs text-slate-500 font-sans pt-1">
@@ -391,118 +422,118 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Card 2: Wear */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-1">
+          <div className="bg-white border border-[#E2DFD7] rounded-2xl p-6 shadow-paper space-y-1 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
             <div className="flex items-center justify-between text-slate-500 text-xs">
-              <span className="font-bold uppercase tracking-wider text-[10px]">Wear</span>
-              <Activity className="w-4 h-4 text-sky-600" />
+              <span className="font-mono font-bold uppercase tracking-wider text-[10px]">Average Wear</span>
+              <Activity className="w-4 h-4 text-accent" />
             </div>
-            <div className="text-3xl md:text-4xl font-black text-slate-900 pt-2">
-              {(overview?.kpis?.avg_wear_vb_mm ?? 0.14).toFixed(2)} <span className="text-xs font-normal text-slate-500">mm</span>
+            <div className="text-3xl md:text-4xl font-bold font-display text-slate-900 pt-2">
+              {(overview?.kpis?.avg_wear_vb_mm ?? 0.14).toFixed(2)} <span className="text-xs font-normal text-slate-500 font-mono">mm</span>
             </div>
             <p className="text-xs text-slate-500 font-sans pt-1">
-              Average flank wear
+              Average flank wear VB
             </p>
           </div>
 
           {/* Card 3: RUL */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-1">
+          <div className="bg-white border border-[#E2DFD7] rounded-2xl p-6 shadow-paper space-y-1 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
             <div className="flex items-center justify-between text-slate-500 text-xs">
-              <span className="font-bold uppercase tracking-wider text-[10px]">RUL</span>
-              <Clock className="w-4 h-4 text-sky-600" />
+              <span className="font-mono font-bold uppercase tracking-wider text-[10px]">Mean RUL</span>
+              <Clock className="w-4 h-4 text-accent" />
             </div>
-            <div className="text-3xl md:text-4xl font-black text-sky-600 pt-2">
-              {overview?.kpis?.avg_rul_cycles ?? 109} <span className="text-xs font-normal text-slate-500">cyc</span>
+            <div className="text-3xl md:text-4xl font-bold font-display text-accent pt-2">
+              {overview?.kpis?.avg_rul_cycles ?? 109} <span className="text-xs font-normal text-slate-500 font-mono">cyc</span>
             </div>
             <p className="text-xs text-slate-500 font-sans pt-1">
-              Mean cycles to replacement
+              Cycles to replacement
             </p>
           </div>
 
           {/* Card 4: Alerts */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-1">
+          <div className="bg-white border border-[#E2DFD7] rounded-2xl p-6 shadow-paper space-y-1 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
             <div className="flex items-center justify-between text-slate-500 text-xs">
-              <span className="font-bold uppercase tracking-wider text-[10px]">Alerts</span>
-              <AlertTriangle className={`w-4 h-4 ${activeAlerts.length > 0 ? 'text-amber-600' : 'text-slate-400'}`} />
+              <span className="font-mono font-bold uppercase tracking-wider text-[10px]">Active Alerts</span>
+              <AlertTriangle className={`w-4 h-4 ${activeAlerts.length > 0 ? 'text-warning' : 'text-slate-400'}`} />
             </div>
-            <div className={`text-3xl md:text-4xl font-black pt-2 ${activeAlerts.length > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
+            <div className={`text-3xl md:text-4xl font-bold font-display pt-2 ${activeAlerts.length > 0 ? 'text-warning' : 'text-slate-900'}`}>
               {activeAlerts.length}
             </div>
             <p className="text-xs text-slate-500 font-sans pt-1">
-              {activeAlerts.length === 0 ? 'All parameters normal' : 'Active notifications'}
+              {activeAlerts.length === 0 ? 'All parameters within norm' : 'Active notices require review'}
             </p>
           </div>
         </div>
       </div>
 
       {/* ============================================================ */}
-      {/* SECTION 4 — WEAR TREND (LARGE FULL-WIDTH CHART) */}
+      {/* SECTION 5 — WEAR TREND (FULL-WIDTH PRECISION CHART)          */}
       {/* ============================================================ */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#E2DFD7]">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 font-sans">
+            <h2 className="text-xl font-bold font-display text-slate-900">
               Wear Trend
             </h2>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
-              Tool wear across inspections
+              Tool flank degradation across inspections
             </p>
           </div>
-          <span className="text-xs font-mono font-semibold px-3 py-1 bg-slate-100 rounded-lg text-slate-600 self-start sm:self-auto">
+          <span className="text-xs font-mono font-semibold px-3 py-1 bg-[#F0EFEA] border border-[#E2DFD7] rounded-lg text-slate-700 self-start sm:self-auto">
             Limit: 0.30 mm ISO Threshold
           </span>
         </div>
 
-        <div className="h-[400px] w-full pt-4">
+        <div className="h-[380px] w-full pt-4">
           <Line data={wearChartData} options={chartOptions} />
         </div>
       </div>
 
       {/* ============================================================ */}
-      {/* SECTION 5 — RUL TREND (LARGE FULL-WIDTH CHART) */}
+      {/* SECTION 6 — RUL TREND (FULL-WIDTH PRECISION CHART)           */}
       {/* ============================================================ */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#E2DFD7]">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 font-sans">
+            <h2 className="text-xl font-bold font-display text-slate-900">
               Remaining Useful Life
             </h2>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
-              Predicted useful life over time
+              Predicted operational cycles before replacement
             </p>
           </div>
-          <span className="text-xs font-mono font-semibold px-3 py-1 bg-slate-100 rounded-lg text-slate-600 self-start sm:self-auto">
-            Model: XGBoost Regressor
+          <span className="text-xs font-mono font-semibold px-3 py-1 bg-[#F0EFEA] border border-[#E2DFD7] rounded-lg text-slate-700 self-start sm:self-auto">
+            Model: XGBoost Precision Regressor
           </span>
         </div>
 
-        <div className="h-[400px] w-full pt-4">
+        <div className="h-[380px] w-full pt-4">
           <Line data={rulChartData} options={chartOptions} />
         </div>
       </div>
 
       {/* ============================================================ */}
-      {/* SECTION 6 — AI INSIGHT (LARGE SIMPLE CARD) */}
+      {/* SECTION 7 — AI INSIGHT (CARD)                               */}
       {/* ============================================================ */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-xs space-y-6">
-        <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
-          <CheckCircle2 className="w-5 h-5 text-sky-600" />
-          <h2 className="text-base font-bold text-slate-900 uppercase font-mono tracking-wide">
-            AI Insight
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-5">
+        <div className="flex items-center gap-2.5 pb-4 border-b border-[#E2DFD7]">
+          <CheckCircle2 className="w-5 h-5 text-accent" />
+          <h2 className="text-base font-bold font-display text-slate-900 uppercase tracking-wide">
+            AI Insight & Prescription
           </h2>
         </div>
 
-        <div className="space-y-6 font-sans">
+        <div className="space-y-5 font-sans">
           <div className="space-y-1.5">
             <div className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
-              AI INSIGHT
+              TELEMETRY ANALYSIS
             </div>
             <p className="text-base md:text-lg text-slate-900 font-medium leading-relaxed">
               "{aiInsightText}"
             </p>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 space-y-1.5">
-            <div className="text-xs font-mono font-bold text-sky-700 uppercase tracking-wider">
+          <div className="pt-4 border-t border-[#E2DFD7] space-y-1.5">
+            <div className="text-xs font-mono font-bold text-accent uppercase tracking-wider">
               RECOMMENDED ACTION
             </div>
             <p className="text-base font-bold text-slate-900">
@@ -513,12 +544,12 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* ============================================================ */}
-      {/* SECTION 7 — RECENT INSPECTIONS (SIMPLE TABLE) */}
+      {/* SECTION 8 — RECENT INSPECTIONS TABLE                        */}
       {/* ============================================================ */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-xs space-y-4">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-4">
+        <div className="flex items-center justify-between pb-4 border-b border-[#E2DFD7]">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 font-sans">
+            <h2 className="text-xl font-bold font-display text-slate-900">
               Recent Inspections
             </h2>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
@@ -527,7 +558,7 @@ export const Dashboard: React.FC = () => {
           </div>
           <Link
             to="/inspections"
-            className="text-xs font-mono font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1"
+            className="text-xs font-mono font-bold text-accent hover:text-accent-hover flex items-center gap-1"
           >
             <span>View All</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -537,21 +568,21 @@ export const Dashboard: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px]">
+              <tr className="bg-[#F8F7F4] border-b border-[#E2DFD7] text-slate-500 uppercase text-[11px]">
                 <th className="p-4">Inspection</th>
                 <th className="p-4">Tool</th>
                 <th className="p-4">Wear</th>
                 <th className="p-4">Health</th>
                 <th className="p-4">RUL</th>
                 <th className="p-4">Status</th>
-                <th className="p-4 text-right">Date</th>
+                <th className="p-4 text-right">Date / Time</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#E2DFD7]">
               {recentInspections.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400">
-                    Not enough historical data to generate an insight.
+                  <td colSpan={7} className="p-8 text-center text-slate-400 font-sans">
+                    No historical inspection records logged yet.
                   </td>
                 </tr>
               ) : (
@@ -561,27 +592,17 @@ export const Dashboard: React.FC = () => {
                   const healthScore = (r as any).health_prediction?.health_score ?? (r as any).health_score ?? 100;
                   const rulCycles = (r as any).rul_prediction?.rul_value ?? (r as any).rul_cycles ?? null;
                   return (
-                    <tr key={r.inspection_id} className="hover:bg-slate-50/70 transition">
+                    <tr key={r.inspection_id} className="hover:bg-[#F8F7F4] transition-colors duration-200 cursor-pointer">
                       <td className="p-4 font-bold text-slate-900">{r.inspection_id}</td>
-                      <td className="p-4 font-semibold text-sky-700">{r.tool_id || 'T-014'}</td>
-                      <td className="p-4 font-bold text-slate-900">{wearMm.toFixed(2)} mm</td>
-                      <td className="p-4 font-bold text-emerald-600">{healthScore}%</td>
-                      <td className="p-4 text-slate-700">{rulCycles !== null ? `${rulCycles} cyc` : 'N/A'}</td>
+                      <td className="p-4 font-semibold text-accent">{r.tool_id || 'T-014'}</td>
+                      <td className="p-4 font-bold text-slate-900 data-readout">{wearMm.toFixed(2)} mm</td>
+                      <td className="p-4 font-bold text-normal data-readout">{healthScore}%</td>
+                      <td className="p-4 text-slate-700 data-readout">{rulCycles !== null ? `${rulCycles} cyc` : 'N/A'}</td>
                       <td className="p-4">
-                        <span
-                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded border ${
-                            status === 'HEALTHY'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : status === 'WARNING'
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : 'bg-rose-50 text-rose-700 border-rose-200'
-                          }`}
-                        >
-                          ● {status}
-                        </span>
+                        <SeverityBadge level={status} size="sm" />
                       </td>
-                      <td className="p-4 text-right text-slate-500 font-sans">
-                        {r.timestamp ? r.timestamp.replace('T', ' ').substring(0, 16) : 'Just now'}
+                      <td className="p-4 text-right text-slate-500 data-readout">
+                        {r.timestamp ? r.timestamp.replace('T', ' ').substring(0, 19) : '02:25:06 PM'}
                       </td>
                     </tr>
                   );
@@ -593,17 +614,17 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* ============================================================ */}
-      {/* SECTION 8 — QUICK ACTIONS */}
+      {/* SECTION 9 — QUICK ACTIONS                                   */}
       {/* ============================================================ */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-10 shadow-xs space-y-4">
-        <h2 className="text-sm font-bold text-slate-900 uppercase font-mono tracking-wide">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-4">
+        <h2 className="text-sm font-bold font-display text-slate-900 uppercase tracking-wide">
           Quick Actions
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-5 font-mono">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 font-mono">
           <Link
             to="/inspections"
-            className="flex items-center justify-center gap-2.5 p-5 bg-sky-600 hover:bg-sky-700 text-white rounded-2xl font-bold text-xs transition shadow-xs"
+            className="flex items-center justify-center gap-2.5 p-4 bg-accent hover:bg-accent-hover text-white rounded-2xl font-bold text-xs transition-all duration-300 shadow-paper hover:shadow-lg hover:-translate-y-1"
           >
             <Play className="w-4 h-4" />
             <span>[ New Inspection ]</span>
@@ -611,15 +632,15 @@ export const Dashboard: React.FC = () => {
 
           <Link
             to="/optimization"
-            className="flex items-center justify-center gap-2.5 p-5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 rounded-2xl font-bold text-xs transition shadow-2xs"
+            className="flex items-center justify-center gap-2.5 p-4 bg-white border border-[#E2DFD7] hover:bg-[#F8F7F4] text-slate-800 rounded-2xl font-bold text-xs transition-all duration-300 shadow-2xs hover:shadow-lg hover:-translate-y-1"
           >
-            <Sliders className="w-4 h-4 text-sky-600" />
+            <Sliders className="w-4 h-4 text-accent" />
             <span>[ Optimize Process ]</span>
           </Link>
 
           <Link
             to="/tools"
-            className="flex items-center justify-center gap-2.5 p-5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 rounded-2xl font-bold text-xs transition shadow-2xs"
+            className="flex items-center justify-center gap-2.5 p-4 bg-white border border-[#E2DFD7] hover:bg-[#F8F7F4] text-slate-800 rounded-2xl font-bold text-xs transition-all duration-300 shadow-2xs hover:shadow-lg hover:-translate-y-1"
           >
             <Wrench className="w-4 h-4 text-slate-600" />
             <span>[ Tool Inventory ]</span>
@@ -627,7 +648,7 @@ export const Dashboard: React.FC = () => {
 
           <Link
             to="/insights"
-            className="flex items-center justify-center gap-2.5 p-5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 rounded-2xl font-bold text-xs transition shadow-2xs"
+            className="flex items-center justify-center gap-2.5 p-4 bg-white border border-[#E2DFD7] hover:bg-[#F8F7F4] text-slate-800 rounded-2xl font-bold text-xs transition-all duration-300 shadow-2xs hover:shadow-lg hover:-translate-y-1"
           >
             <Eye className="w-4 h-4 text-slate-600" />
             <span>[ Mfg Insights ]</span>

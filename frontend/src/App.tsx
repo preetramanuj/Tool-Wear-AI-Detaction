@@ -39,12 +39,12 @@ export const App: React.FC = () => {
 
   return (
     <Router>
-      <div className="flex h-screen w-screen overflow-hidden bg-[#F5F7FA] text-slate-900 antialiased">
+      <div className="flex h-screen w-screen overflow-hidden bg-page text-slate-900 antialiased">
         {/* Left Sidebar */}
         <Sidebar activeAlertsCount={activeAlertsCount} />
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto bg-[#F5F7FA]">
+        <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto bg-page">
           <Header />
           <main className="flex-1 pb-10">
             <Routes>

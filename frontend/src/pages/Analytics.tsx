@@ -22,10 +22,10 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler,
+  Filler
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
-import { getAnalyticsOverview, getWearTrend, getHealthDistribution } from '../services/api';
+import { getAnalyticsOverview, getWearTrend } from '../services/api';
 import { AnalyticsOverview, WearTrendPoint } from '../types/api';
 
 ChartJS.register(
@@ -80,18 +80,18 @@ export const Analytics: React.FC = () => {
       {
         label: 'Flank Wear VB (mm)',
         data: trendData.length > 0 ? trendData.map((d) => d.wear_vb_mm) : [0.05, 0.09, 0.14, 0.18, 0.22, 0.25, 0.28],
-        borderColor: '#0284C7',
-        backgroundColor: 'rgba(2, 132, 199, 0.08)',
+        borderColor: '#24548C',
+        backgroundColor: 'rgba(36, 84, 140, 0.06)',
         fill: true,
         tension: 0.35,
         pointRadius: 4,
-        pointBackgroundColor: '#0284C7',
+        pointBackgroundColor: '#24548C',
         borderWidth: 2.5,
       },
       {
         label: 'ISO Warning Limit (0.22 mm)',
         data: Array(labels.length).fill(0.22),
-        borderColor: '#F59E0B',
+        borderColor: '#C9760A',
         borderDash: [5, 5],
         pointRadius: 0,
         fill: false,
@@ -100,7 +100,7 @@ export const Analytics: React.FC = () => {
       {
         label: 'ISO Critical Limit (0.30 mm)',
         data: Array(labels.length).fill(0.30),
-        borderColor: '#EF4444',
+        borderColor: '#C4262B',
         borderDash: [5, 5],
         pointRadius: 0,
         fill: false,
@@ -116,12 +116,12 @@ export const Analytics: React.FC = () => {
       {
         label: 'Tool Health Score (%)',
         data: trendData.length > 0 ? trendData.map((d) => d.health_score) : [98, 92, 85, 78, 70, 62, 55],
-        borderColor: '#10B981',
-        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+        borderColor: '#147C4F',
+        backgroundColor: 'rgba(20, 124, 79, 0.06)',
         fill: true,
         tension: 0.35,
         pointRadius: 4,
-        pointBackgroundColor: '#10B981',
+        pointBackgroundColor: '#147C4F',
         borderWidth: 2.5,
       },
     ],
@@ -134,18 +134,18 @@ export const Analytics: React.FC = () => {
       {
         label: 'Predicted RUL (Cycles Remaining)',
         data: trendData.length > 0 ? trendData.map((d) => d.rul_cycles ?? 50) : [130, 110, 95, 80, 65, 52, 42],
-        borderColor: '#0284C7',
-        backgroundColor: 'rgba(2, 132, 199, 0.08)',
+        borderColor: '#24548C',
+        backgroundColor: 'rgba(36, 84, 140, 0.06)',
         fill: true,
         tension: 0.35,
         pointRadius: 4,
-        pointBackgroundColor: '#0284C7',
+        pointBackgroundColor: '#24548C',
         borderWidth: 2.5,
       },
       {
         label: 'Critical Threshold (15 cycles)',
         data: Array(labels.length).fill(15),
-        borderColor: '#EF4444',
+        borderColor: '#C4262B',
         borderDash: [6, 6],
         fill: false,
         pointRadius: 0,
@@ -161,13 +161,13 @@ export const Analytics: React.FC = () => {
       {
         label: 'Average Wear (µm)',
         data: [142, 98, 185],
-        backgroundColor: '#0284C7',
+        backgroundColor: '#24548C',
         borderRadius: 8,
       },
       {
         label: 'Mean RUL (Cycles)',
         data: [88, 125, 46],
-        backgroundColor: '#10B981',
+        backgroundColor: '#147C4F',
         borderRadius: 8,
       },
     ],
@@ -180,7 +180,7 @@ export const Analytics: React.FC = () => {
       {
         label: 'Current Flank Wear (µm)',
         data: [280, 120, 190, 85],
-        backgroundColor: '#0284C7',
+        backgroundColor: '#24548C',
         borderRadius: 8,
       },
     ],
@@ -199,21 +199,21 @@ export const Analytics: React.FC = () => {
         },
       },
       tooltip: {
-        backgroundColor: '#0F172A',
+        backgroundColor: '#1E293B',
         titleFont: { family: 'Inter', size: 12 },
-        bodyFont: { family: 'JetBrains Mono', size: 12 },
+        bodyFont: { family: 'IBM Plex Mono', size: 12 },
         padding: 12,
         cornerRadius: 8,
       },
     },
     scales: {
       x: {
-        grid: { color: '#F1F5F9' },
-        ticks: { color: '#64748B', font: { family: 'JetBrains Mono', size: 11 } },
+        grid: { color: '#E2DFD7' },
+        ticks: { color: '#64748B', font: { family: 'IBM Plex Mono', size: 11 } },
       },
       y: {
-        grid: { color: '#F1F5F9' },
-        ticks: { color: '#64748B', font: { family: 'JetBrains Mono', size: 11 } },
+        grid: { color: '#E2DFD7' },
+        ticks: { color: '#64748B', font: { family: 'IBM Plex Mono', size: 11 } },
       },
     },
   };
@@ -221,10 +221,10 @@ export const Analytics: React.FC = () => {
   return (
     <div className="p-6 md:p-10 space-y-10 max-w-7xl mx-auto font-sans text-slate-800">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E2DFD7]">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            ANALYTICS
+          <h1 className="text-2xl md:text-3xl font-bold font-display text-slate-900 tracking-tight">
+            Tool Wear Analytics & Metrics
           </h1>
           <p className="text-sm text-slate-500 font-mono mt-1">
             Wear progression curves, condition classifications, and machine comparisons
@@ -234,7 +234,7 @@ export const Analytics: React.FC = () => {
         <button
           onClick={fetchAnalytics}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition shadow-xs self-start sm:self-auto font-mono"
+          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-white border border-[#E2DFD7] text-slate-700 hover:bg-[#F8F7F4] transition shadow-paper self-start sm:self-auto font-mono"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           <span>Refresh Analytics</span>
@@ -242,16 +242,19 @@ export const Analytics: React.FC = () => {
       </div>
 
       {/* SECTION 1: WEAR ANALYSIS */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#E2DFD7]">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 font-sans">
+            <h2 className="text-lg font-bold font-display text-slate-900">
               Wear Analysis
             </h2>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
               Flank wear (VB) progression vs ISO 0.30 mm limit
             </p>
           </div>
+          <span className="text-xs font-mono font-bold px-3 py-1 bg-[#F0EFEA] border border-[#E2DFD7] rounded-lg text-slate-700">
+            0.28 mm Current
+          </span>
         </div>
         <div className="h-[360px] w-full pt-2">
           <Line data={wearChartData} options={chartOptions} />
@@ -259,10 +262,10 @@ export const Analytics: React.FC = () => {
       </div>
 
       {/* SECTION 2: HEALTH ANALYSIS */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#E2DFD7]">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 font-sans">
+            <h2 className="text-lg font-bold font-display text-slate-900">
               Health Analysis
             </h2>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
@@ -276,10 +279,10 @@ export const Analytics: React.FC = () => {
       </div>
 
       {/* SECTION 3: RUL ANALYSIS */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#E2DFD7]">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 font-sans">
+            <h2 className="text-lg font-bold font-display text-slate-900">
               RUL Analysis
             </h2>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
@@ -293,10 +296,10 @@ export const Analytics: React.FC = () => {
       </div>
 
       {/* SECTION 4: MACHINE PERFORMANCE */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#E2DFD7]">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 font-sans">
+            <h2 className="text-lg font-bold font-display text-slate-900">
               Machine Performance
             </h2>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
@@ -310,10 +313,10 @@ export const Analytics: React.FC = () => {
       </div>
 
       {/* SECTION 5: TOOL PERFORMANCE */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#E2DFD7]">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 font-sans">
+            <h2 className="text-lg font-bold font-display text-slate-900">
               Tool Performance
             </h2>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
@@ -330,3 +333,4 @@ export const Analytics: React.FC = () => {
 };
 
 export default Analytics;
+

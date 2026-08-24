@@ -8,9 +8,11 @@ import {
   ArrowRight,
   Info,
   ShieldCheck,
+  AlertOctagon,
 } from 'lucide-react';
 import { getAlerts, acknowledgeAlert } from '../services/api';
 import { AlertItem } from '../types/api';
+import { SeverityBadge, SeverityCard } from '../components/common/Severity';
 
 export const Alerts: React.FC = () => {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -42,13 +44,16 @@ export const Alerts: React.FC = () => {
     }
   };
 
+  const criticalCount = alerts.filter((a) => a.severity === 'CRITICAL').length;
+  const warningCount = alerts.filter((a) => a.severity === 'WARNING').length;
+
   return (
     <div className="p-6 md:p-10 space-y-10 max-w-7xl mx-auto font-sans text-slate-800">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E2DFD7]">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            ALERTS
+          <h1 className="text-2xl md:text-3xl font-bold font-display text-slate-900 tracking-tight">
+            ALERTS & NOTIFICATIONS
           </h1>
           <p className="text-sm text-slate-500 font-mono mt-1">
             Real-time threshold breaches and operational notifications
@@ -56,11 +61,11 @@ export const Alerts: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3 font-mono text-xs">
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <div className="flex bg-[#F0EFEA] p-1 rounded-xl border border-[#E2DFD7]">
             <button
               onClick={() => setFilter('all')}
               className={`px-3 py-1.5 rounded-lg font-bold transition ${
-                filter === 'all' ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                filter === 'all' ? 'bg-accent text-white shadow-paper' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               ALL ALERTS
@@ -68,7 +73,7 @@ export const Alerts: React.FC = () => {
             <button
               onClick={() => setFilter('unacknowledged')}
               className={`px-3 py-1.5 rounded-lg font-bold transition ${
-                filter === 'unacknowledged' ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                filter === 'unacknowledged' ? 'bg-accent text-white shadow-paper' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               ACTIVE ONLY
@@ -78,7 +83,7 @@ export const Alerts: React.FC = () => {
           <button
             onClick={fetchAlertsList}
             disabled={loading}
-            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition"
+            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-[#F0EFEA] rounded-xl transition border border-[#E2DFD7] bg-white shadow-paper"
             title="Refresh"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -86,19 +91,40 @@ export const Alerts: React.FC = () => {
         </div>
       </div>
 
+      {/* Severity Matrix Banner */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <SeverityCard
+          level="NORMAL"
+          title="Normal Status"
+          subtitle="Operating parameters nominal"
+        />
+        <SeverityCard
+          level="WARNING"
+          title="Warning Level"
+          subtitle={`${warningCount} items approaching limit`}
+          count={warningCount}
+        />
+        <SeverityCard
+          level="CRITICAL"
+          title="Critical Level"
+          subtitle={`${criticalCount} items require immediate action`}
+          count={criticalCount}
+        />
+      </div>
+
       {/* Alerts Feed */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
-        <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900 font-sans">
+      <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-6">
+        <div className="pb-4 border-b border-[#E2DFD7] flex items-center justify-between">
+          <h2 className="text-lg font-bold font-display text-slate-900">
             Active & Logged Alarms ({alerts.length})
           </h2>
         </div>
 
         {alerts.length === 0 ? (
           <div className="p-12 text-center text-slate-400 font-mono text-xs space-y-2">
-            <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-            <div className="text-base font-bold text-slate-700">No active alerts</div>
-            <p className="text-slate-500">All monitored cutting tools are operating within normal configured parameters.</p>
+            <CheckCircle2 className="w-12 h-12 text-normal mx-auto" />
+            <div className="text-base font-bold text-slate-700 font-display">No active alerts</div>
+            <p className="text-slate-500 font-sans">All monitored cutting tools are operating within normal configured parameters.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -110,45 +136,35 @@ export const Alerts: React.FC = () => {
                   key={al.alert_id}
                   className={`p-6 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition ${
                     isCritical
-                      ? 'bg-rose-50/70 border-rose-200 text-rose-950'
+                      ? 'bg-critical-light/40 border-critical/40 text-slate-900 hazard-stripe-left pl-8'
                       : isWarning
-                      ? 'bg-amber-50/70 border-amber-200 text-amber-950'
-                      : 'bg-sky-50/70 border-sky-200 text-sky-950'
+                      ? 'bg-warning-light/40 border-warning/40 text-slate-900'
+                      : 'bg-accent-50/40 border-accent/30 text-slate-900'
                   }`}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="p-2.5 bg-white rounded-xl shrink-0 shadow-2xs">
+                    <div className="p-2.5 bg-white rounded-xl shrink-0 shadow-paper">
                       {isCritical ? (
-                        <AlertTriangle className="w-5 h-5 text-rose-600" />
+                        <AlertOctagon className="w-5 h-5 text-critical" />
                       ) : isWarning ? (
-                        <AlertTriangle className="w-5 h-5 text-amber-600" />
+                        <AlertTriangle className="w-5 h-5 text-warning" />
                       ) : (
-                        <Info className="w-5 h-5 text-sky-600" />
+                        <Info className="w-5 h-5 text-accent" />
                       )}
                     </div>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-base font-sans">
+                      <div className="flex items-center gap-2.5">
+                        <h3 className="font-bold text-base font-display">
                           {al.title || (isCritical ? 'Critical Tool Flank Wear Limit Breach' : 'Tool Wear Warning Threshold')}
                         </h3>
-                        <span
-                          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                            isCritical
-                              ? 'bg-rose-100 text-rose-700 border-rose-200'
-                              : isWarning
-                              ? 'bg-amber-100 text-amber-700 border-amber-200'
-                              : 'bg-sky-100 text-sky-700 border-sky-200'
-                          }`}
-                        >
-                          ● {al.severity}
-                        </span>
+                        <SeverityBadge level={al.severity} size="sm" />
                       </div>
                       <p className="text-xs text-slate-700 font-sans leading-relaxed">
                         {al.message}
                       </p>
                       <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-slate-500 pt-1">
-                        <div>Tool: <strong className="text-slate-800">{al.tool_id || 'T-014'}</strong></div>
-                        <div>Time: {al.timestamp ? al.timestamp.replace('T', ' ').substring(0, 16) : 'Just now'}</div>
+                        <div>Tool: <strong className="text-accent">{al.tool_id || 'T-014'}</strong></div>
+                        <div className="data-readout">Time: {al.timestamp ? al.timestamp.replace('T', ' ').substring(0, 19) : '02:25:06 PM'}</div>
                         <div>Status: {al.is_acknowledged ? '✓ Acknowledged' : 'Active'}</div>
                       </div>
                     </div>
@@ -158,14 +174,14 @@ export const Alerts: React.FC = () => {
                     {!al.is_acknowledged && (
                       <button
                         onClick={() => handleAcknowledge(al.alert_id)}
-                        className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl font-bold transition shadow-2xs"
+                        className="px-3 py-1.5 bg-white hover:bg-[#F8F7F4] text-slate-700 border border-[#E2DFD7] rounded-xl font-bold transition shadow-paper"
                       >
                         Acknowledge
                       </button>
                     )}
                     <Link
                       to="/tools"
-                      className="flex items-center gap-1 px-4 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold transition shadow-xs"
+                      className="flex items-center gap-1 px-4 py-1.5 bg-accent hover:bg-accent-hover text-white rounded-xl font-bold transition shadow-paper"
                     >
                       <span>[ View Tool ]</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -182,3 +198,4 @@ export const Alerts: React.FC = () => {
 };
 
 export default Alerts;
+

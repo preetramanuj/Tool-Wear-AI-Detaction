@@ -3,35 +3,104 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-page: #F6F5F1;
+    --color-card: #FFFFFF;
+    --color-border: #E2DFD7;
+    --color-accent: #24548C;
+    --color-normal: #147C4F;
+    --color-warning: #C9760A;
+    --color-critical: #C4262B;
+  }
+
   body {
-    background-color: #F5F7FA;
-    color: #0F172A;
+    background-color: #F6F5F1;
+    color: #1A202C;
     font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
-/* Custom Industrial Clean UI Scrollbar */
+/* Typography Utility Classes */
+.font-display {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.font-mono {
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-display {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.section-heading {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  color: #0F172A;
+  letter-spacing: -0.02em;
+}
+
+.data-readout {
+  font-family: 'IBM Plex Mono', monospace;
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Hazard Striping for Critical Severity Cards */
+.hazard-stripe-left {
+  position: relative;
+  overflow: hidden;
+}
+
+.hazard-stripe-left::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 10px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #1E293B,
+    #1E293B 4px,
+    #C4262B 4px,
+    #C4262B 8px
+  );
+  border-top-left-radius: inherit;
+  border-bottom-left-radius: inherit;
+  z-index: 10;
+}
+
+/* Paper Theme Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #F1F5F9;
+  background: #F6F5F1;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #CBC7BD;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #9E9A90;
 }
 
-/* Technical Blueprint Grid Pattern for White Industrial HUD */
-.bg-grid-white {
-  background-image: linear-gradient(to right, rgba(203, 213, 225, 0.4) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(203, 213, 225, 0.4) 1px, transparent 1px);
-  background-size: 20px 20px;
+/* Precision Industrial Grid Pattern */
+.bg-grid-paper {
+  background-image: linear-gradient(to right, rgba(226, 223, 215, 0.6) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(226, 223, 215, 0.6) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
+

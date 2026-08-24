@@ -67,20 +67,20 @@ export const RootCauseAnalysis: React.FC = () => {
   return (
     <div className="p-6 md:p-10 space-y-10 max-w-7xl mx-auto font-sans text-slate-800">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E2DFD7]">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            ROOT CAUSE ANALYSIS
+          <h1 className="text-2xl md:text-3xl font-bold font-display text-slate-900 tracking-tight">
+            Root Cause & Factor Analysis
           </h1>
           <p className="text-sm text-slate-500 font-mono mt-1">
-            Why might this problem be happening?
+            Statistical parameter influence and anomaly causal attribution
           </p>
         </div>
 
         <button
           onClick={() => executeAnalysis(selectedToolId)}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition shadow-xs self-start sm:self-auto font-mono"
+          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-white border border-[#E2DFD7] text-slate-700 hover:bg-[#F8F7F4] transition shadow-paper self-start sm:self-auto font-mono"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           <span>Re-Analyze</span>
@@ -88,12 +88,12 @@ export const RootCauseAnalysis: React.FC = () => {
       </div>
 
       {/* Target Selection Form */}
-      <form onSubmit={handleRunAnalysis} className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
+      <form onSubmit={handleRunAnalysis} className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-6">
         <div>
-          <span className="text-[11px] font-mono uppercase tracking-wider text-sky-600 font-bold">
+          <span className="text-[11px] font-mono uppercase tracking-wider text-accent font-bold">
             DIAGNOSTIC TARGET SELECTION
           </span>
-          <h2 className="text-lg font-bold text-slate-900 font-sans mt-0.5">
+          <h2 className="text-lg font-bold font-display text-slate-900 mt-0.5">
             Select Tool & Issue
           </h2>
         </div>
@@ -106,7 +106,7 @@ export const RootCauseAnalysis: React.FC = () => {
             <select
               value={selectedToolId}
               onChange={(e) => setSelectedToolId(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:outline-hidden focus:ring-2 focus:ring-sky-600/20"
+              className="w-full px-4 py-2.5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-xl text-slate-900 font-bold focus:outline-hidden focus:ring-2 focus:ring-accent/20"
             >
               {tools.map((t) => (
                 <option key={t.tool_id} value={t.tool_id}>
@@ -123,7 +123,7 @@ export const RootCauseAnalysis: React.FC = () => {
             <select
               value={selectedIssue}
               onChange={(e) => setSelectedIssue(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:outline-hidden focus:ring-2 focus:ring-sky-600/20"
+              className="w-full px-4 py-2.5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-xl text-slate-900 font-bold focus:outline-hidden focus:ring-2 focus:ring-accent/20"
             >
               <option value="Abnormal Wear">Abnormal Wear</option>
               <option value="Premature RUL Degradation">Premature RUL Degradation</option>
@@ -136,7 +136,7 @@ export const RootCauseAnalysis: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold font-mono text-xs transition shadow-xs disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-5 bg-accent hover:bg-accent-hover text-white rounded-xl font-bold font-mono text-xs transition shadow-paper disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -156,20 +156,20 @@ export const RootCauseAnalysis: React.FC = () => {
 
       {/* Analysis Output */}
       {error ? (
-        <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-6 text-xs font-mono">
+        <div className="bg-critical-light border border-critical-border text-critical rounded-2xl p-6 text-xs font-mono">
           {error}
         </div>
       ) : report ? (
         <div className="space-y-8">
           {/* TOP CONTRIBUTING FACTORS */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
-            <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-6">
+            <div className="pb-4 border-b border-[#E2DFD7] flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-bold">
                   FACTOR CONTRIBUTION
                 </span>
-                <h2 className="text-xl font-bold text-slate-900 font-sans mt-0.5">
-                  TOP CONTRIBUTING FACTORS
+                <h2 className="text-xl font-bold font-display text-slate-900 mt-0.5">
+                  Top Contributing Factors
                 </h2>
               </div>
               <span className="text-xs font-mono text-slate-400">Statistical influence</span>
@@ -188,23 +188,23 @@ export const RootCauseAnalysis: React.FC = () => {
                   return (
                     <div key={idx} className="space-y-2 font-mono">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-900 text-sm">
+                        <span className="font-bold font-display text-slate-900 text-sm">
                           {factorName}
                         </span>
                         <div className="flex items-center gap-4">
                           <span className="text-xs text-slate-500">
-                            Observed: <strong className="text-slate-800">{observedVal} {factor.unit || ''}</strong>
+                            Observed: <strong className="text-slate-800 data-readout">{observedVal} {factor.unit || ''}</strong>
                           </span>
-                          <span className="font-bold text-sky-700 w-16 text-right text-base">
+                          <span className="font-bold text-accent w-16 text-right text-base font-display">
                             {percent.toFixed(0)}%
                           </span>
                         </div>
                       </div>
 
                       {/* Progress Bar */}
-                      <div className="h-3.5 w-full bg-slate-100 rounded-full overflow-hidden p-0.5">
+                      <div className="h-3 w-full bg-[#F0EFEA] rounded-full overflow-hidden p-0.5 border border-[#E2DFD7]">
                         <div
-                          className="h-full bg-sky-600 rounded-full transition-all duration-500 shadow-inner"
+                          className="h-full bg-accent rounded-full transition-all duration-500"
                           style={{ width: `${percent}%` }}
                         ></div>
                       </div>
@@ -216,19 +216,19 @@ export const RootCauseAnalysis: React.FC = () => {
           </div>
 
           {/* AI EXPLANATION */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <ShieldCheck className="w-5 h-5 text-sky-600" />
-              <h2 className="text-base font-bold text-slate-900 font-sans">
-                AI EXPLANATION
+          <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 md:p-8 shadow-paper space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-[#E2DFD7]">
+              <ShieldCheck className="w-5 h-5 text-accent" />
+              <h2 className="text-base font-bold font-display text-slate-900">
+                Diagnostic Interpretation & Action Plan
               </h2>
             </div>
 
-            <div className="p-5 bg-slate-50 border border-slate-100 rounded-xl space-y-3 font-sans">
+            <div className="p-5 bg-[#F8F7F4] border border-[#E2DFD7] rounded-2xl space-y-3 font-sans">
               <p className="text-sm text-slate-800 leading-relaxed font-medium">
                 "{report.explanation}"
               </p>
-              <div className="pt-2 text-xs font-mono text-slate-500 border-t border-slate-200">
+              <div className="pt-2 text-xs font-mono text-slate-500 border-t border-[#E2DFD7]">
                 {report.disclaimer || 'Root Cause Analysis highlights statistical correlations and process parameter deviations to assist maintenance engineering.'}
               </div>
             </div>
