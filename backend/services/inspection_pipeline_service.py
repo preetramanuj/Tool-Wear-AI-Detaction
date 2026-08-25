@@ -1,3 +1,4 @@
+import base64
 import os
 import cv2
 import numpy as np
@@ -18,6 +19,7 @@ from backend.database.crud import (
     create_sensor_reading,
 )
 from backend.services.tool_detection_service import tool_detection_service
+from backend.services.tool_matching_service import tool_matching_service
 from backend.services.wear_analysis_service import wear_analysis_service
 from backend.services.health_prediction_service import health_prediction_service
 from backend.services.face_detection_service import face_detection_service
@@ -414,6 +416,32 @@ class InspectionPipelineService:
                 "message": msg,
             }
 
+        # 5b. Tool Registry Reference Matching (Few-Shot Visual Identification)
+        registry_match_res = {
+            "matched": False,
+            "tool_id": tool_id or ("TL-001" if is_detected else "UNIDENTIFIED"),
+            "tool_name": tool_name or "Cutting Tool",
+            "similarity": 0.0,
+            "similarity_percent": "0.0%",
+            "match_status": "SKIPPED" if not is_detected else "UNKNOWN_TOOL",
+            "message": "Tool detection skipped or not detected.",
+        }
+
+        if is_detected and cropped_roi_bgr is not None:
+            with SessionLocal() as db_match:
+                registry_match_res = tool_matching_service.match_tool_roi(
+                    query_crop_bgr=cropped_roi_bgr,
+                    target_tool_id=tool_id,
+                    db=db_match
+                )
+            stages_completed.append("TOOL_REGISTRY_MATCHING")
+
+            if registry_match_res.get("matched"):
+                matched_id = registry_match_res.get("tool_id")
+                if matched_id and matched_id != "UNKNOWN":
+                    tool_id = matched_id
+                    tool_name = registry_match_res.get("tool_name", tool_name)
+
         # 6. Stage 4: Person-Tool Association
         person_dets = person_tool_association_service.detect_persons(image)
         associations = person_tool_association_service.evaluate_association(
@@ -434,6 +462,10 @@ class InspectionPipelineService:
             face_detections=face_list if not is_detected else None,
         )
 
+        # Encode base64 annotated data URL
+        _, annot_buf = cv2.imencode(".jpg", annotated_img)
+        b64_annot_img = f"data:image/jpeg;base64,{base64.b64encode(annot_buf).decode('utf-8')}"
+
         # 8. Cross-Modal Synthesis & Combined Insights
         combined_insights = self.generate_combined_insights(
             wear_vb_mm=wear_res.get("wear_value") if is_supported else None,
@@ -441,6 +473,14 @@ class InspectionPipelineService:
             health_status=health_res.get("health_status", "UNKNOWN"),
             sensor_data=parsed_sensors
         )
+
+        if is_detected and not registry_match_res.get("matched") and registry_match_res.get("match_status") == "UNKNOWN_TOOL":
+            combined_insights.append({
+                "title": "Unregistered Physical Tool",
+                "description": "Tool detected visually, but no matching reference profile found in Tool Inventory. You can register this tool in Tool Inventory with reference photos for automated visual identification.",
+                "severity": "INFO",
+                "category": "TOOL_REGISTRY"
+            })
 
         if not is_detected and is_face_present:
             combined_insights.insert(0, {
@@ -604,9 +644,12 @@ class InspectionPipelineService:
             "combined_insights": combined_insights,
             "faces": face_verify_res,
             "associations": associations,
+            "tool_registry_match": registry_match_res,
+            "annotated_image_base64": b64_annot_img,
             "images": {
                 "original": f"/storage/uploaded_images/{orig_filename}",
                 "annotated": f"/storage/processed_images/{annot_filename}",
+                "annotated_base64": b64_annot_img,
                 "cropped_roi": f"/storage/processed_images/{crop_filename}" if crop_path else None,
             },
             "performance": {

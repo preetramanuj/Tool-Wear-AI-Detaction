@@ -389,9 +389,102 @@ Tool Image + Sensor Telemetry (Vibration, Temp, Current, Force, RPM, Feed) -> Va
 
 ---
 
-## 2.4 Reports & Compliance Documentation Endpoints
+## 2.4 Tool Inventory & Visual Reference Registry Endpoints
 
-### 2.4.1 Universal Report Export
+### 2.4.1 Register Physical Tool with Multi-Angle Reference Photos
+- **Method**: `POST`
+- **URL**: `/api/v1/tools/register`
+- **Purpose**: Registers a physical cutting tool in inventory with 3–10 reference photos, extracting 576-dim L2-normalized feature embeddings for few-shot visual matching.
+- **Request Format**: `multipart/form-data`
+- **Form Fields**:
+  - `tool_id` (*string*, required): Unique physical tool identifier (e.g. `T-014`).
+  - `tool_name` (*string*): Descriptive name (e.g. `Carbide Roughing Insert`).
+  - `tool_type` (*string*): Geometry designation (e.g. `CNMG 12 04 08-PM`).
+  - `manufacturer` (*string*): Brand / supplier (e.g. `Sandvik Coromant`).
+  - `part_number` (*string*): Manufacturer part number.
+  - `material` (*string*): Tool substrate material.
+  - `coating` (*string*): CVD/PVD coating specification.
+  - `machine_id` (*string*): Assigned CNC machine station.
+  - `angle_tags` (*string*, JSON array): List of angle labels per uploaded photo (`["Front Flank", "Rake Face", "Side Profile", "Macro"]`).
+  - `reference_photos` (*List[UploadFile]*): 3–10 optical photos of the tool insert.
+- **Response**:
+```json
+{
+  "success": true,
+  "tool": {
+    "tool_id": "T-014",
+    "tool_name": "Carbide Roughing Insert",
+    "tool_type": "CNMG 12 04 08-PM",
+    "manufacturer": "Sandvik Coromant",
+    "status": "HEALTHY"
+  },
+  "registration_summary": {
+    "tool_id": "T-014",
+    "total_submitted": 5,
+    "valid_accepted": 5,
+    "rejected": 0,
+    "total_reference_embeddings": 5,
+    "status": "SUCCESS"
+  },
+  "message": "Tool 'T-014' registered successfully with 5 reference embeddings."
+}
+```
+
+---
+
+### 2.4.2 Retrieve Tool Reference Photos
+- **Method**: `GET`
+- **URL**: `/api/v1/tools/{tool_id}/references`
+- **Purpose**: Retrieves all validated reference images and embedding status for a registered tool.
+- **Response**:
+```json
+{
+  "success": true,
+  "tool_id": "T-014",
+  "total_references": 5,
+  "embedding_status": "READY",
+  "embedding_dim": 576,
+  "references": [
+    {
+      "id": 1,
+      "file_name": "front_flank.jpg",
+      "image_path": "/storage/tools/T-014/references/ref_001.jpg",
+      "angle_tag": "Front Flank",
+      "is_valid": true
+    }
+  ]
+}
+```
+
+---
+
+### 2.4.3 Test Visual Reference Matching
+- **Method**: `POST`
+- **URL**: `/api/v1/tools/match`
+- **Purpose**: Directly evaluates visual cosine similarity of a query tool image crop against all registered tool reference embeddings.
+- **Request Format**: `multipart/form-data` (`image: UploadFile`, `target_tool_id: Optional[str]`)
+- **Response**:
+```json
+{
+  "success": true,
+  "match_result": {
+    "matched": true,
+    "tool_id": "T-014",
+    "tool_name": "Carbide Roughing Insert",
+    "similarity": 0.8421,
+    "similarity_percent": "84.2%",
+    "match_threshold": 0.75,
+    "match_status": "CONFIRMED",
+    "message": "Physical tool successfully identified as T-014 (84.2% confidence)."
+  }
+}
+```
+
+---
+
+## 2.5 Reports & Compliance Documentation Endpoints
+
+### 2.5.1 Universal Report Export
 - **Method**: `GET`
 - **URL**: `/api/v1/reports/export`
 - **Purpose**: Generates and downloads compiled executive audit reports in requested format (`pdf`, `docx`, `csv`).

@@ -22,11 +22,13 @@ import {
   AlertCircle,
   ScanLine,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { analyzeInspectionImage, getInspectionRecords, getTools, getImageUrl } from '../services/api';
 import { InspectionResult, Tool, SensorDataInput } from '../types/api';
 import { SeverityBadge } from '../components/common/Severity';
 
 export const Inspections: React.FC = () => {
+  const navigate = useNavigate();
   const [tools, setTools] = useState<Tool[]>([]);
   const [selectedToolId, setSelectedToolId] = useState<string>('TL-CNMG-120408');
 
@@ -1004,6 +1006,48 @@ export const Inspections: React.FC = () => {
             </div>
           )}
 
+          {/* TOOL REGISTRY MATCH STATUS */}
+          {currentResult.tool_detection?.detected && (
+            <div className={`p-5 rounded-3xl border-2 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-paper transition-all ${
+              currentResult.tool_registry_match?.matched
+                ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950'
+                : 'bg-amber-50/80 border-amber-400 text-amber-950'
+            }`}>
+              <div className="flex items-center gap-3.5">
+                <div className={`p-3 rounded-2xl text-white shrink-0 ${
+                  currentResult.tool_registry_match?.matched ? 'bg-emerald-600 shadow-md shadow-emerald-200' : 'bg-amber-500 shadow-md shadow-amber-200'
+                }`}>
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider">
+                      {currentResult.tool_registry_match?.matched ? 'CONFIRMED REGISTRY MATCH' : 'UNREGISTERED PHYSICAL TOOL'}
+                    </span>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full font-bold bg-white/70 border border-current">
+                      {currentResult.tool_registry_match?.matched
+                        ? `Score: ${currentResult.tool_registry_match.similarity_percent}`
+                        : `Sim: ${currentResult.tool_registry_match?.similarity_percent || '0%'}`}
+                    </span>
+                  </div>
+                  <div className="text-sm font-bold text-slate-800">
+                    {currentResult.tool_registry_match?.matched
+                      ? `Matched Tool Profile: ${currentResult.tool_registry_match.tool_id} (${currentResult.tool_registry_match.tool_name})`
+                      : `Visual similarity is below registration threshold. This physical cutting insert is not registered in Tool Inventory.`}
+                  </div>
+                </div>
+              </div>
+              {!currentResult.tool_registry_match?.matched && (
+                <button
+                  onClick={() => navigate('/tools')}
+                  className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-mono font-bold rounded-xl transition-all shadow-sm shrink-0 flex items-center gap-1.5"
+                >
+                  <span>+ Register In Inventory</span>
+                </button>
+              )}
+            </div>
+          )}
+
           {/* 1. ORIGINAL vs AI ANALYZED IMAGE COMPARISON */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
             <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 shadow-paper flex flex-col space-y-3">
@@ -1013,7 +1057,7 @@ export const Inspections: React.FC = () => {
                 </span>
                 <span className="text-[11px] font-mono text-slate-400">Pre-Inference Raw Capture</span>
               </div>
-              <div className="flex-1 min-h-[320px] bg-slate-900 rounded-2xl flex items-center justify-center overflow-hidden shadow-inner">
+              <div className="flex-1 min-h-[320px] bg-slate-900 rounded-2xl flex items-center justify-center overflow-hidden shadow-inner relative">
                 {currentResult.images?.original ? (
                   <img
                     src={getImageUrl(currentResult.images.original)}
@@ -1031,16 +1075,18 @@ export const Inspections: React.FC = () => {
             <div className="bg-white border border-[#E2DFD7] rounded-3xl p-6 shadow-paper flex flex-col space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4" />
-                  2. AI ANALYZED OUTPUT IMAGE
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  2. AI ANALYZED OUTPUT IMAGE (GREEN HUD BOX)
                 </span>
-                <span className="text-[11px] font-mono text-slate-400">YOLO11 Detection + HUD</span>
+                <span className="text-[11px] font-mono text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                  {currentResult.tool_detection?.detected ? `TOOL DETECTED [${currentResult.tool_detection.confidence_percent || '95.0%'}]` : 'NO TOOL'}
+                </span>
               </div>
-              <div className="flex-1 min-h-[320px] bg-slate-900 rounded-2xl flex items-center justify-center overflow-hidden shadow-inner">
-                {currentResult.images?.annotated ? (
+              <div className="relative flex-1 min-h-[320px] bg-slate-900 rounded-2xl flex items-center justify-center overflow-hidden shadow-inner">
+                {currentResult.annotated_image_base64 || currentResult.images?.annotated_base64 || currentResult.images?.annotated ? (
                   <img
-                    src={getImageUrl(currentResult.images.annotated)}
-                    alt="Analyzed Image"
+                    src={currentResult.annotated_image_base64 || currentResult.images?.annotated_base64 || getImageUrl(currentResult.images?.annotated)}
+                    alt="Analyzed Image with Green Detection HUD Box"
                     className="w-full h-full object-contain"
                   />
                 ) : (

@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.database.models import (
     Tool,
+    ToolReferenceImage,
+    ToolEmbedding,
     InspectionRecord,
     AlertRecord,
     OperatorRecord,
@@ -295,10 +297,66 @@ def update_tool_wear(
 def delete_tool(db: Session, tool_id: str):
     tool = get_tool_by_id(db, tool_id)
     if tool:
+        # Also clean up associated references and embeddings
+        db.query(ToolReferenceImage).filter(ToolReferenceImage.tool_id == tool_id).delete()
+        db.query(ToolEmbedding).filter(ToolEmbedding.tool_id == tool_id).delete()
         db.delete(tool)
         db.commit()
         return True
     return False
+
+# --- Tool Reference Images & Embeddings CRUD ---
+def create_tool_reference_image(db: Session, ref_data: dict) -> ToolReferenceImage:
+    ref = ToolReferenceImage(**ref_data)
+    db.add(ref)
+    db.commit()
+    db.refresh(ref)
+    return ref
+
+def get_tool_reference_images(db: Session, tool_id: str) -> List[ToolReferenceImage]:
+    return db.query(ToolReferenceImage).filter(
+        ToolReferenceImage.tool_id == tool_id,
+        ToolReferenceImage.is_valid == True
+    ).all()
+
+def delete_tool_reference_image(db: Session, image_id: int) -> bool:
+    ref = db.query(ToolReferenceImage).filter(ToolReferenceImage.id == image_id).first()
+    if ref:
+        db.delete(ref)
+        db.commit()
+        return True
+    return False
+
+def save_tool_embedding_record(
+    db: Session,
+    tool_id: str,
+    embedding_file: str,
+    embedding_dim: int = 576,
+    reference_count: int = 1
+) -> ToolEmbedding:
+    emb = db.query(ToolEmbedding).filter(ToolEmbedding.tool_id == tool_id).first()
+    if not emb:
+        emb = ToolEmbedding(
+            tool_id=tool_id,
+            embedding_file=embedding_file,
+            embedding_dim=embedding_dim,
+            reference_count=reference_count,
+        )
+        db.add(emb)
+    else:
+        emb.embedding_file = embedding_file
+        emb.embedding_dim = embedding_dim
+        emb.reference_count = reference_count
+        emb.updated_at = datetime.datetime.utcnow()
+    db.commit()
+    db.refresh(emb)
+    return emb
+
+def get_tool_embedding_record(db: Session, tool_id: str) -> Optional[ToolEmbedding]:
+    return db.query(ToolEmbedding).filter(ToolEmbedding.tool_id == tool_id).first()
+
+def get_all_tool_embeddings(db: Session) -> List[ToolEmbedding]:
+    return db.query(ToolEmbedding).all()
 
 # --- Inspection CRUD ---
 def create_inspection_record(db: Session, inspection_data: dict):

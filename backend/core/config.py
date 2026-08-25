@@ -77,6 +77,10 @@ class Settings(BaseSettings):
     REPORTS_DIR: str = str(BASE_DIR / "storage" / "reports")
     PREDICTIONS_DIR: str = str(BASE_DIR / "result" / "predictions")
     
+    # Tool Registry & Few-Shot Reference Matching
+    TOOL_MATCH_THRESHOLD: float = 0.75
+    TOOL_STORAGE_DIR: str = str(BASE_DIR / "storage" / "tools")
+    
     # Database Configuration (SQLite: backend/data/toolguard.db)
     DATABASE_URL: str = f"sqlite:///{BASE_DIR / 'backend' / 'data' / 'toolguard.db'}"
     
@@ -101,5 +105,6 @@ for folder in [
     settings.PREDICTIONS_DIR,
     settings.FACE_REGISTERED_DIR,
     settings.FACE_VERIFY_INPUT_DIR,
+    settings.TOOL_STORAGE_DIR,
 ]:
     os.makedirs(folder, exist_ok=True)

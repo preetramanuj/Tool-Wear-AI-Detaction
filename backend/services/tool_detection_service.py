@@ -442,6 +442,17 @@ class ToolDetectionService:
         tool_detected = detection_result.get("detected", len(detection_result.get("detections", [])) > 0)
         detections = detection_result.get("detections", [])
 
+        # Fallback: if tool_detected is true but detections list is empty, construct detection from primary bbox
+        if not detections and tool_detected:
+            prim_bbox = detection_result.get("bbox", [0, 0, 0, 0])
+            if any(prim_bbox):
+                detections = [{
+                    "bbox": prim_bbox,
+                    "confidence": float(detection_result.get("confidence", 0.95)),
+                    "confidence_percent": detection_result.get("confidence_percent", f"{float(detection_result.get('confidence', 0.95))*100:.1f}%"),
+                    "class_name": detection_result.get("class", "cutting_tool"),
+                }]
+
         # If faces are present and no tool is detected, render face bounding boxes and notice banner
         if not tool_detected and face_detections:
             for face in face_detections:

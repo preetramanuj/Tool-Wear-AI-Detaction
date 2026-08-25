@@ -2,6 +2,7 @@ import axios from 'axios';
 import {
   InspectionResult,
   Tool,
+  ToolReferenceImage,
   AlertItem,
   FaceDetectionResponse,
   FaceVerificationResponse,
@@ -112,6 +113,33 @@ export const getTools = async (): Promise<Tool[]> => {
 export const createTool = async (toolData: Partial<Tool>): Promise<Tool> => {
   const response = await apiClient.post<{ tool: Tool }>('/tools', toolData);
   return response.data.tool;
+};
+
+export const registerToolWithReferences = async (formData: FormData): Promise<any> => {
+  const response = await apiClient.post('/tools/register', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+export const getToolReferences = async (toolId: string): Promise<{ success: boolean; total_references: number; references: ToolReferenceImage[] }> => {
+  const response = await apiClient.get(`/tools/${toolId}/references`);
+  return response.data;
+};
+
+export const deleteToolReference = async (toolId: string, imageId: number): Promise<boolean> => {
+  const response = await apiClient.delete(`/tools/${toolId}/references/${imageId}`);
+  return response.data.success;
+};
+
+export const matchToolQuery = async (imageFile: File | Blob, targetToolId?: string): Promise<any> => {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  if (targetToolId) formData.append('target_tool_id', targetToolId);
+  const response = await apiClient.post('/tools/match', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
 };
 
 export const updateTool = async (toolId: string, toolData: Partial<Tool>): Promise<Tool> => {

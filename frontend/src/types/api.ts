@@ -188,9 +188,12 @@ export interface InspectionResult {
   combined_insights?: CombinedInsight[];
   faces?: any;
   associations?: PersonToolAssociation[];
+  tool_registry_match?: ToolRegistryMatchResult;
+  annotated_image_base64?: string;
   images: {
     original?: string;
     annotated?: string;
+    annotated_base64?: string;
     cropped_roi?: string;
   };
   performance: {
@@ -199,6 +202,32 @@ export interface InspectionResult {
     stages_completed: string[];
   };
   error?: string;
+}
+
+export interface ToolRegistryMatchResult {
+  matched: boolean;
+  tool_id: string;
+  tool_name: string;
+  matched_registered_id?: string;
+  similarity: number;
+  similarity_percent: string;
+  match_threshold?: number;
+  match_status: 'CONFIRMED' | 'UNKNOWN_TOOL' | 'EMPTY_REGISTRY' | 'SKIPPED' | 'NO_CROP' | string;
+  candidates?: Array<{
+    tool_id: string;
+    similarity: number;
+    similarity_percent: string;
+  }>;
+  message?: string;
+}
+
+export interface ToolReferenceImage {
+  id: number;
+  file_name: string;
+  image_path: string;
+  angle_tag?: string;
+  is_valid: boolean;
+  created_at: string;
 }
 
 export interface WebcamFrameResult {
@@ -236,6 +265,10 @@ export interface Tool {
   insert_shape: string;
   material: string;
   coating: string;
+  manufacturer?: string;
+  part_number?: string;
+  workpiece_material?: string;
+  initial_condition?: string;
   machine_id: string;
   assigned_operator: string;
   status: 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'RETIRED';

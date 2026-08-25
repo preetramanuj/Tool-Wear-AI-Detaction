@@ -28,6 +28,30 @@ class Tool(Base):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
 
+class ToolReferenceImage(Base):
+    __tablename__ = "tool_reference_images"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tool_id = Column(String(50), index=True, nullable=False)
+    file_name = Column(String(100), nullable=False)
+    image_path = Column(String(255), nullable=False)
+    angle_tag = Column(String(50), default="Front")
+    detection_bbox = Column(String(100), nullable=True)
+    is_valid = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class ToolEmbedding(Base):
+    __tablename__ = "tool_embeddings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tool_id = Column(String(50), unique=True, index=True, nullable=False)
+    embedding_file = Column(String(255), nullable=False)
+    embedding_dim = Column(Integer, default=576)
+    reference_count = Column(Integer, default=0)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
 class InspectionRecord(Base):
     __tablename__ = "inspections"
     
